@@ -613,7 +613,25 @@ $("#importFile").addEventListener("change",async ev=>{
 });
 
 // ---------- Offline ----------
-if("serviceWorker" in navigator){ window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{})); }
+// Updates: an iPhone home-screen app often resumes without reloading, so check for a
+// new version each time the app comes back to the foreground, then reload into it.
+if("serviceWorker" in navigator){
+  const hadController = !!navigator.serviceWorker.controller;
+  let pendingReload = false;
+  const formIsEmpty = () => !["#enInput","#frInput","#noteInput"].some(s=>$(s).value.trim()) && !editingId;
+  navigator.serviceWorker.addEventListener("controllerchange",()=>{
+    if(!hadController) return;            // first install: nothing to refresh
+    if(formIsEmpty()) location.reload(); else pendingReload = true;
+  });
+  window.addEventListener("load",()=>{
+    navigator.serviceWorker.register("sw.js",{updateViaCache:"none"}).then(reg=>{
+      document.addEventListener("visibilitychange",()=>{
+        if(document.visibilityState==="visible") reg.update().catch(()=>{});
+        else if(pendingReload) location.reload();
+      });
+    }).catch(()=>{});
+  });
+}
 
 let savedOrigin="en"; try{ savedOrigin=localStorage.getItem("carnet-anglais-origin")||"en"; }catch(e){}
 setOrigin(savedOrigin==="fr"?"fr":"en");

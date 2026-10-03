@@ -1,9 +1,14 @@
 // Garde l'app disponible hors ligne. Change VERSION à chaque mise à jour des fichiers.
-const VERSION = "carnet-v6";
+const VERSION = "carnet-v7";
 const FILES = ["./", "index.html", "manifest.webmanifest", "apple-touch-icon.png", "icon-192.png", "icon-512.png"];
 
 self.addEventListener("install", e => {
-  e.waitUntil(caches.open(VERSION).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));
+  // cache:"reload" ignore le cache HTTP du navigateur (GitHub Pages garde les fichiers 10 min).
+  e.waitUntil(
+    caches.open(VERSION)
+      .then(c => c.addAll(FILES.map(f => new Request(f, { cache: "reload" }))))
+      .then(() => self.skipWaiting())
+  );
 });
 
 self.addEventListener("activate", e => {
@@ -13,12 +18,15 @@ self.addEventListener("activate", e => {
   );
 });
 
-// Réseau d'abord (pour recevoir les mises à jour), cache si hors ligne.
+// Réseau d'abord, en revalidant toujours auprès de GitHub ; cache seulement hors ligne.
 self.addEventListener("fetch", e => {
   if (e.request.method !== "GET" || new URL(e.request.url).origin !== location.origin) return;
   e.respondWith(
-    fetch(e.request)
-      .then(res => { const copy = res.clone(); caches.open(VERSION).then(c => c.put(e.request, copy)); return res; })
+    fetch(e.request, { cache: "no-cache" })
+      .then(res => {
+        if (res.ok) { const copy = res.clone(); caches.open(VERSION).then(c => c.put(e.request, copy)); }
+        return res;
+      })
       .catch(() => caches.match(e.request, { ignoreSearch: true }).then(r => r || caches.match("index.html")))
   );
 });
