@@ -8,8 +8,16 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Carnet EN">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="theme-color" content="#f5f7fb" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#11152a" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#f5f7fb" id="themeColor">
+<script>
+// Apply the saved theme before the page paints (no flash).
+(function(){
+  var t="auto"; try{ t=localStorage.getItem("carnet-anglais-theme")||"auto"; }catch(e){}
+  var dark = t==="dark" || (t==="auto" && matchMedia("(prefers-color-scheme: dark)").matches);
+  document.documentElement.setAttribute("data-theme", dark?"dark":"light");
+  document.getElementById("themeColor").setAttribute("content", dark?"#11152a":"#f5f7fb");
+})();
+</script>
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="manifest" href="manifest.webmanifest">
 <style>
@@ -20,9 +28,14 @@
   --f-body: -apple-system, BlinkMacSystemFont, system-ui, "Segoe UI", sans-serif;
   color-scheme: light;
 }
-@media (prefers-color-scheme: dark){:root{
+:root[data-theme="dark"]{
   --paper:#11152a; --card:#1a2038; --ink:#e7eaf6; --muted:#9aa3c2; --line:#2c3454;
-  --blue:#8ea6ff; --blue-soft:#232d55; --hl:#e8c93c; --hl-ink:#2a2200; --ok:#6fd3a0; --ok-soft:#173a2a; --danger:#ff8a80; color-scheme:dark}}
+  --blue:#8ea6ff; --blue-soft:#232d55; --hl:#e8c93c; --hl-ink:#2a2200; --ok:#6fd3a0; --ok-soft:#173a2a; --danger:#ff8a80; color-scheme:dark}
+body{transition:background-color .25s,color .25s}
+@media (prefers-reduced-motion:reduce){body{transition:none}}
+header{display:flex;gap:12px;align-items:flex-start;justify-content:space-between}
+header > div{min-width:0}
+.themeBtn{flex:none;width:46px;height:46px;border-radius:50%;border:1px solid var(--line);background:var(--card);font-size:22px;line-height:1;cursor:pointer;display:grid;place-items:center;padding:0}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 [hidden]{display:none!important}
 html{-webkit-text-size-adjust:100%}
@@ -56,10 +69,15 @@ input:focus-visible,textarea:focus-visible,button:focus-visible,a:focus-visible{
 .btn:disabled{opacity:.5}
 .spacer{flex:1}
 
-.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);position:sticky;top:env(safe-area-inset-top);background:var(--paper);z-index:2;box-shadow:0 -40px 0 var(--paper)}
-.tabs button{font:inherit;font-family:var(--f-display);font-weight:600;font-size:18px;background:none;border:0;border-bottom:3px solid transparent;color:var(--muted);padding:10px 12px;cursor:pointer;margin-bottom:-1px}
+.tabs{display:grid;grid-template-columns:repeat(3,1fr);border-bottom:1px solid var(--line);position:sticky;top:env(safe-area-inset-top);background:var(--paper);z-index:2}
+/* Opaque strip behind the iPhone status bar so content scrolls under it cleanly */
+body::before{content:"";position:fixed;left:0;right:0;top:0;height:env(safe-area-inset-top);background:var(--paper);z-index:3}
+.tabs button{font:inherit;font-family:var(--f-display);font-weight:600;font-size:17px;background:none;border:0;border-bottom:3px solid transparent;color:var(--muted);padding:12px 2px;cursor:pointer;margin-bottom:-1px;white-space:nowrap;display:flex;align-items:center;justify-content:center;gap:5px;min-width:0}
 .tabs button[aria-selected=true]{color:var(--ink);border-color:var(--blue)}
-.tabs .count{font-family:var(--f-body);font-size:13px;color:var(--muted);margin-left:4px;font-variant-numeric:tabular-nums}
+.tabs .emo{font-size:17px}
+.tabs .count{font-family:var(--f-body);font-size:12px;font-weight:700;color:var(--muted);background:var(--blue-soft);border-radius:999px;padding:1px 7px;font-variant-numeric:tabular-nums}
+.tabs button[aria-selected=true] .count{color:var(--blue)}
+@media (max-width:360px){.tabs button{font-size:15px;gap:3px}.tabs .count{padding:1px 5px}}
 
 .view{display:flex;flex-direction:column;gap:14px}
 .tools{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
@@ -104,16 +122,19 @@ button.chip{cursor:pointer}
 <body>
 <div class="wrap">
   <header>
-    <h1>Mon carnet <span class="en">d'anglais</span></h1>
-    <p class="sub">Note chaque mot ou expression rencontré en anglais, ou chaque phrase que tu voulais dire. Puis révise-les pour qu'ils restent.</p>
+    <div>
+      <h1>Mon carnet <span class="en">d'anglais</span></h1>
+      <p class="sub">Note chaque mot ou expression rencontré en anglais, ou chaque phrase que tu voulais dire. Puis révise-les pour qu'ils restent.</p>
+    </div>
+    <button class="themeBtn" id="themeBtn" type="button" aria-label="Changer de mode"></button>
   </header>
 
   <p class="notice" id="notice" hidden></p>
 
   <div class="tabs" role="tablist">
-    <button role="tab" data-tab="list" aria-selected="true">Carnet <span class="count" id="countAll">0</span></button>
-    <button role="tab" data-tab="review" aria-selected="false">Réviser <span class="count" id="countTodo">0</span></button>
-    <button role="tab" data-tab="backup" aria-selected="false">Réglages</button>
+    <button role="tab" data-tab="list" aria-selected="true"><span class="emo" aria-hidden="true">📒</span>Carnet <span class="count" id="countAll">0</span></button>
+    <button role="tab" data-tab="review" aria-selected="false"><span class="emo" aria-hidden="true">🧠</span>Réviser <span class="count" id="countTodo">0</span></button>
+    <button role="tab" data-tab="backup" aria-selected="false"><span class="emo" aria-hidden="true">⚙️</span>Réglages</button>
   </div>
 
   <!-- CARNET -->
@@ -183,6 +204,15 @@ button.chip{cursor:pointer}
 
   <!-- SAUVEGARDE -->
   <section class="view" id="view-backup" hidden>
+    <div class="backup">
+      <h2>Apparence</h2>
+      <div class="seg" role="group" aria-label="Apparence">
+        <button type="button" data-theme-opt="light" aria-pressed="false">☀️ Jour</button>
+        <button type="button" data-theme-opt="dark" aria-pressed="false">🌙 Nuit</button>
+        <button type="button" data-theme-opt="auto" aria-pressed="false">📱 Auto</button>
+      </div>
+      <p style="font-size:14px">« Auto » suit le réglage de ton iPhone. Tu peux aussi basculer à tout moment avec le bouton ☀️/🌙 en haut de l'écran.</p>
+    </div>
     <form class="backup" id="settingsForm" autocomplete="off">
       <h2>Traduction automatique</h2>
       <p>Renseigne l'adresse de ton relais Cloudflare et le mot de passe que tu as choisi (APP_PASSWORD).</p>
@@ -273,6 +303,25 @@ function setOrigin(o){
 }
 document.querySelectorAll("[data-origin]").forEach(b=>b.addEventListener("click",()=>setOrigin(b.dataset.origin)));
 ["#enInput","#frInput"].forEach(s=>$(s).addEventListener("input",updateLinks));
+
+// ---------- Theme (day / night) ----------
+const TKEY="carnet-anglais-theme";
+let themePref="auto"; try{ themePref=localStorage.getItem(TKEY)||"auto"; }catch(e){}
+const sysDark = matchMedia("(prefers-color-scheme: dark)");
+function applyTheme(){
+  const dark = themePref==="dark" || (themePref==="auto" && sysDark.matches);
+  document.documentElement.setAttribute("data-theme", dark?"dark":"light");
+  $("#themeColor").setAttribute("content", dark?"#11152a":"#f5f7fb");
+  const btn=$("#themeBtn");
+  btn.textContent = dark ? "☀️" : "🌙";
+  btn.setAttribute("aria-label", dark ? "Passer en mode jour" : "Passer en mode nuit");
+  document.querySelectorAll("[data-theme-opt]").forEach(b=>b.setAttribute("aria-pressed", b.dataset.themeOpt===themePref));
+}
+function setTheme(t){ themePref=t; try{ localStorage.setItem(TKEY,t); }catch(e){} applyTheme(); }
+$("#themeBtn").addEventListener("click",()=>setTheme(document.documentElement.getAttribute("data-theme")==="dark"?"light":"dark"));
+document.querySelectorAll("[data-theme-opt]").forEach(b=>b.addEventListener("click",()=>setTheme(b.dataset.themeOpt)));
+sysDark.addEventListener?.("change",()=>{ if(themePref==="auto") applyTheme(); });
+applyTheme();
 
 // ---------- Settings ----------
 const SKEY="carnet-anglais-settings";
