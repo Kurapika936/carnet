@@ -52,6 +52,12 @@ h1 .en{color:var(--blue)}
 form.add{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;display:grid;gap:14px}
 .pair{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .pair.single{grid-template-columns:1fr}
+.result{display:flex;align-items:center;gap:12px;background:var(--blue-soft);border-radius:14px;padding:14px 14px 14px 16px;animation:resIn .25s ease}
+.result .rflag{font-size:26px;line-height:1;flex:none}
+.result .rtext{flex:1;min-width:0;font-family:var(--f-display);font-weight:700;font-size:21px;line-height:1.25;color:var(--blue);overflow-wrap:anywhere}
+.result .icon{flex:none;font-size:20px}
+@keyframes resIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.result{animation:none}}
 .switchRow{display:flex;align-items:center;gap:12px;background:none;border:0;padding:2px 0;font:inherit;font-size:15px;color:var(--ink);cursor:pointer;text-align:left;justify-self:start}
 .switchRow .track{flex:none;width:46px;height:28px;border-radius:999px;background:var(--line);position:relative;transition:background .2s}
 .switchRow .track::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:var(--card);box-shadow:0 1px 3px rgba(0,0,0,.25);transition:transform .2s}
@@ -171,6 +177,10 @@ button.chip{cursor:pointer}
         <label for="frInput">Français
           <input type="text" id="frInput" placeholder="ex. prendre le coup de main" autocapitalize="off">
         </label>
+      </div>
+      <div class="result" id="result" hidden aria-live="polite">
+        <span class="rflag" id="resultFlag"></span><div class="rtext" id="resultText"></div>
+        <button class="icon" type="button" id="resultSpeak" aria-label="Écouter">🔊</button>
       </div>
       <button type="button" class="switchRow" id="ownSwitch" role="switch" aria-checked="false">
         <span class="track" aria-hidden="true"></span><span id="ownLabel">✏️ Ma propre traduction</span>
@@ -416,9 +426,12 @@ function updateTranslateUI(){
   $("#translateBtn").hidden = !canTranslate();
   $("#translateBtn").textContent = fromFr ? "Traduire en anglais" : "Traduire en français";
   $("#translateHint").textContent = canTranslate() ? "" : "Traduction automatique : à configurer dans Réglages";
+  if(typeof showResult==="function") showResult();
 }
 $("#ownSwitch").addEventListener("click",()=>{
   ownMode=!ownMode; try{ localStorage.setItem("carnet-anglais-own", ownMode?"1":"0"); }catch(e){}
+  // Carry a translation already on screen into the editable field.
+  if(ownMode && pendingValid()){ (origin==="fr" ? $("#enInput") : $("#frInput")).value = pending.text; }
   updateTranslateUI();
   if(ownMode) (origin==="fr" ? $("#enInput") : $("#frInput")).focus();
 });
@@ -499,7 +512,7 @@ function render(){
 }
 function resetForm(){
   $("#enInput").value=""; $("#frInput").value=""; $("#noteInput").value="";
-  editingId=null; $("#saveBtn").textContent="Ajouter au carnet"; $("#cancelEdit").hidden=true; updateLinks(); updateTranslateUI();
+  editingId=null; $("#saveBtn").textContent="Ajouter au carnet"; $("#cancelEdit").hidden=true; pending=null; updateLinks(); updateTranslateUI();
 }
 $("#list").addEventListener("click",ev=>{
   const b=ev.target.closest("[data-act]"); if(!b) return;
@@ -522,6 +535,29 @@ $("#search").addEventListener("input",render);
 document.querySelectorAll("[data-filter]").forEach(b=>b.addEventListener("click",()=>{
   filter=b.dataset.filter; document.querySelectorAll("[data-filter]").forEach(x=>x.setAttribute("aria-pressed",x===b)); render();
 }));
+// Auto mode works in two steps: "Traduire" shows the translation, then "Ajouter au carnet" saves it.
+let pending=null; // {origin, src, text}
+function srcInput(){ return origin==="fr" ? $("#frInput") : $("#enInput"); }
+function pendingValid(){ return !!pending && pending.origin===origin && pending.src===srcInput().value.trim(); }
+function updateSaveLabel(){
+  const btn=$("#saveBtn"); if(btn.disabled) return;
+  if(editingId) btn.textContent="Enregistrer";
+  else if(autoMode()) btn.textContent = pendingValid() ? "Ajouter au carnet" : "Traduire";
+  else btn.textContent="Ajouter au carnet";
+}
+function showResult(){
+  const ok = autoMode() && pendingValid();
+  $("#result").hidden = !ok;
+  if(ok){
+    $("#resultFlag").textContent = origin==="fr" ? (settings.accent==="GB"?"🇬🇧":"🇺🇸") : "🇫🇷";
+    $("#resultText").textContent = pending.text;
+    $("#resultSpeak").hidden = origin!=="fr"; // only the English side is spoken
+  }
+  updateSaveLabel();
+}
+function clearPending(){ pending=null; showResult(); }
+["#enInput","#frInput"].forEach(s=>$(s).addEventListener("input",showResult));
+$("#resultSpeak").addEventListener("click",()=>{ if(pending) speak(pending.text); });
 $("#addForm").addEventListener("submit",async ev=>{
   ev.preventDefault();
   let en=$("#enInput").value.trim(), fr=$("#frInput").value.trim();
@@ -529,18 +565,23 @@ $("#addForm").addEventListener("submit",async ev=>{
   if(autoMode()){
     const fromFr = origin==="fr", src = fromFr ? $("#frInput") : $("#enInput");
     if(!src.value.trim()){ toast(fromFr?"Écris d'abord la phrase en français.":"Écris d'abord le mot en anglais."); src.focus(); return; }
-    const btn=$("#saveBtn"); btn.disabled=true; btn.textContent="Traduction…";
-    try{
-      const t = await fetchTranslation();
-      if(fromFr){ fr=src.value.trim(); en=t; } else { en=src.value.trim(); fr=t; }
-    }catch(err){
-      toast(err.message+" Active « ma propre traduction » pour l'écrire toi-même.");
+    // Step 1: translate and show it.
+    if(!pendingValid()){
+      const btn=$("#saveBtn"), text=src.value.trim(); btn.disabled=true; btn.textContent="Traduction…";
+      try{
+        const t = await fetchTranslation();
+        pending = {origin, src:text, text:t};
+      }catch(err){
+        toast(err.message+" Active « Ma propre traduction » pour l'écrire toi-même.");
+      }finally{ btn.disabled=false; showResult(); }
       return;
-    }finally{ btn.disabled=false; btn.textContent="Ajouter au carnet"; }
+    }
+    // Step 2: save what is on screen.
+    if(fromFr){ fr=pending.src; en=pending.text; } else { en=pending.src; fr=pending.text; }
     const dup=entries.some(x=>x.en.toLowerCase()===en.toLowerCase());
     entries.push({id:uid(),en,fr,note,origin,status:"new",createdAt:Date.now()});
-    if(save()) toast((dup?"Déjà noté, ajouté quand même : ":"Ajouté : ")+(fromFr?en:fr));
-    resetForm(); render(); src.focus();
+    if(save()) toast(dup?"Ajouté (tu l'avais déjà noté)":"Ajouté au carnet");
+    resetForm(); render();
     return;
   }
   if(!en||!fr){
