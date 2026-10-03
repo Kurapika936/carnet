@@ -1,0 +1,532 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Carnet d'anglais</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Carnet EN">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#f5f7fb" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#11152a" media="(prefers-color-scheme: dark)">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<style>
+:root{
+  --paper:#f5f7fb; --card:#ffffff; --ink:#1b2440; --muted:#5d6782; --line:#dde2ee;
+  --blue:#2546c7; --blue-soft:#e6ebfb; --hl:#ffe46b; --hl-ink:#5a4a00; --ok:#1f7a4d; --ok-soft:#e2f4ea; --danger:#b3261e;
+  --f-display: ui-rounded, "SF Pro Rounded", -apple-system, system-ui, sans-serif;
+  --f-body: -apple-system, BlinkMacSystemFont, system-ui, "Segoe UI", sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark){:root{
+  --paper:#11152a; --card:#1a2038; --ink:#e7eaf6; --muted:#9aa3c2; --line:#2c3454;
+  --blue:#8ea6ff; --blue-soft:#232d55; --hl:#e8c93c; --hl-ink:#2a2200; --ok:#6fd3a0; --ok-soft:#173a2a; --danger:#ff8a80; color-scheme:dark}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+[hidden]{display:none!important}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.5}
+.wrap{max-width:760px;margin:0 auto;
+  padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,env(safe-area-inset-right));
+  padding-top:calc(18px + env(safe-area-inset-top));padding-bottom:calc(48px + env(safe-area-inset-bottom));
+  display:flex;flex-direction:column;gap:20px}
+h1{font-family:var(--f-display);font-weight:700;font-size:32px;line-height:1.05;margin:0;letter-spacing:-.01em}
+h1 .en{color:var(--blue)}
+.sub{color:var(--muted);margin:6px 0 0;max-width:60ch;font-size:15px}
+.notice{background:var(--hl);color:var(--hl-ink);padding:10px 14px;border-radius:10px;margin:0;font-size:15px}
+
+form.add{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;display:grid;gap:14px}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:560px){.pair{grid-template-columns:1fr}}
+label{display:flex;flex-direction:column;gap:5px;font-size:12px;font-weight:700;color:var(--muted);letter-spacing:.04em;text-transform:uppercase;min-width:0}
+label .flag{font-weight:400;text-transform:none;letter-spacing:0}
+/* 17px+ prevents iOS from zooming into fields */
+input[type=text],input[type=search],textarea{font:inherit;font-size:17px;text-transform:none;letter-spacing:0;font-weight:400;color:var(--ink);background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:11px 12px;width:100%;-webkit-appearance:none;appearance:none}
+textarea{resize:vertical;min-height:46px}
+input:focus-visible,textarea:focus-visible,button:focus-visible,a:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.seg{display:inline-flex;flex-wrap:wrap;border:1px solid var(--line);border-radius:999px;padding:3px;gap:2px;background:var(--paper)}
+.seg button{border:0;background:transparent;color:var(--muted);font:inherit;font-size:14px;padding:7px 12px;border-radius:999px;cursor:pointer}
+.seg button[aria-pressed=true]{background:var(--blue);color:var(--card);font-weight:700}
+.lookup{font-size:14px;color:var(--muted)}
+.lookup a{color:var(--blue);font-weight:600}
+.btn{font:inherit;font-weight:700;border:0;border-radius:12px;padding:12px 18px;cursor:pointer;background:var(--blue);color:var(--card)}
+.btn.ghost{background:transparent;color:var(--blue);border:1px solid var(--line)}
+.btn:disabled{opacity:.5}
+.spacer{flex:1}
+
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);position:sticky;top:env(safe-area-inset-top);background:var(--paper);z-index:2;box-shadow:0 -40px 0 var(--paper)}
+.tabs button{font:inherit;font-family:var(--f-display);font-weight:600;font-size:18px;background:none;border:0;border-bottom:3px solid transparent;color:var(--muted);padding:10px 12px;cursor:pointer;margin-bottom:-1px}
+.tabs button[aria-selected=true]{color:var(--ink);border-color:var(--blue)}
+.tabs .count{font-family:var(--f-body);font-size:13px;color:var(--muted);margin-left:4px;font-variant-numeric:tabular-nums}
+
+.view{display:flex;flex-direction:column;gap:14px}
+.tools{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.tools input[type=search]{flex:1 1 220px;min-width:0;background:var(--card);border-radius:999px;padding:10px 16px}
+
+ul.list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.entry{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 14px 12px 16px;display:grid;grid-template-columns:1fr auto;gap:6px 10px}
+.entry .terms{min-width:0;display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 10px}
+.entry .en{font-family:var(--f-display);font-weight:700;font-size:20px;overflow-wrap:anywhere}
+.entry .arrow{color:var(--muted)}
+.entry .fr{font-size:17px;overflow-wrap:anywhere}
+.entry .note{grid-column:1/-1;color:var(--muted);font-style:italic;font-size:15px;margin:0;overflow-wrap:anywhere}
+.entry .meta{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:13px;color:var(--muted)}
+.chip{font:inherit;font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:3px 9px;border-radius:999px;background:var(--blue-soft);color:var(--blue);border:0}
+.chip.todo{background:var(--hl);color:var(--hl-ink)}
+.chip.done{background:var(--ok-soft);color:var(--ok)}
+button.chip{cursor:pointer}
+.icons{display:flex;gap:0;align-items:start}
+.icon{background:none;border:0;color:var(--muted);cursor:pointer;font:inherit;font-size:14px;padding:6px 8px;border-radius:8px}
+.icon.danger{color:var(--danger)}
+.confirm{grid-column:1/-1;display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:14px}
+
+.empty{border:2px dashed var(--line);border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:12px;color:var(--muted)}
+.empty strong{color:var(--ink)}
+.empty .entry{opacity:.85}
+
+.flash{background:var(--card);border:1px solid var(--line);border-radius:18px;min-height:240px;padding:28px 20px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:10px;cursor:pointer;user-select:none;-webkit-user-select:none}
+.flash .side{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.flash .front{font-family:var(--f-display);font-weight:700;font-size:30px;line-height:1.15;overflow-wrap:anywhere}
+.flash .back{font-size:21px;color:var(--blue);overflow-wrap:anywhere}
+.flash .note{color:var(--muted);font-style:italic;max-width:50ch}
+.progress{font-size:14px;color:var(--muted);font-variant-numeric:tabular-nums}
+
+.backup{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:12px}
+.backup h2{font-family:var(--f-display);font-size:20px;margin:0}
+.backup p{margin:0;color:var(--muted);font-size:15px}
+.stat{font-variant-numeric:tabular-nums;color:var(--ink);font-weight:700}
+
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom));background:var(--ink);color:var(--paper);padding:10px 16px;border-radius:12px;font-size:14px;z-index:5;max-width:calc(100% - 32px)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Mon carnet <span class="en">d'anglais</span></h1>
+    <p class="sub">Note chaque mot ou expression rencontré en anglais, ou chaque phrase que tu voulais dire. Puis révise-les pour qu'ils restent.</p>
+  </header>
+
+  <p class="notice" id="notice" hidden></p>
+
+  <div class="tabs" role="tablist">
+    <button role="tab" data-tab="list" aria-selected="true">Carnet <span class="count" id="countAll">0</span></button>
+    <button role="tab" data-tab="review" aria-selected="false">Réviser <span class="count" id="countTodo">0</span></button>
+    <button role="tab" data-tab="backup" aria-selected="false">Réglages</button>
+  </div>
+
+  <!-- CARNET -->
+  <section class="view" id="view-list">
+    <form class="add" id="addForm" autocomplete="off">
+      <div class="seg" role="group" aria-label="Sens">
+        <button type="button" data-origin="en" aria-pressed="true">Vu en anglais</button>
+        <button type="button" data-origin="fr" aria-pressed="false">À dire en anglais</button>
+      </div>
+      <div class="pair">
+        <label for="enInput">Anglais <span class="flag">(mot ou expression)</span>
+          <input type="text" id="enInput" placeholder="ex. to get the hang of it" autocapitalize="off" spellcheck="false" lang="en">
+        </label>
+        <label for="frInput">Français
+          <input type="text" id="frInput" placeholder="ex. prendre le coup de main" autocapitalize="off">
+        </label>
+      </div>
+      <label for="noteInput">Exemple ou contexte <span class="flag">(facultatif)</span>
+        <textarea id="noteInput" rows="1" placeholder="ex. It took me a week to get the hang of it." autocapitalize="sentences"></textarea>
+      </label>
+      <div class="row">
+        <button class="btn ghost" id="translateBtn" type="button">Traduire avec DeepL</button>
+        <span class="lookup" id="translateHint"></span>
+      </div>
+      <div class="lookup">Vérifier ailleurs : <a id="wrLink" href="https://www.wordreference.com/enfr/" target="_blank" rel="noopener">WordReference</a> · <a id="lingLink" href="https://www.linguee.fr/anglais-francais/" target="_blank" rel="noopener">Linguee</a> · <a id="gtLink" href="https://translate.google.com/?sl=en&amp;tl=fr" target="_blank" rel="noopener">Google Trad.</a></div>
+      <div class="row">
+        <button class="btn ghost" id="cancelEdit" type="button" hidden>Annuler</button>
+        <span class="spacer"></span>
+        <button class="btn" id="saveBtn" type="submit">Ajouter au carnet</button>
+      </div>
+    </form>
+
+    <div class="tools">
+      <input type="search" id="search" placeholder="Rechercher" aria-label="Rechercher">
+      <div class="seg" role="group" aria-label="Filtre">
+        <button type="button" data-filter="all" aria-pressed="true">Tout</button>
+        <button type="button" data-filter="todo" aria-pressed="false">À revoir</button>
+        <button type="button" data-filter="done" aria-pressed="false">Acquis</button>
+      </div>
+    </div>
+    <ul class="list" id="list"></ul>
+    <div class="empty" id="empty">
+      <div><strong>Ton carnet est vide.</strong> Ajoute ton premier mot avec le formulaire. Il ressemblera à ceci :</div>
+      <div class="entry" aria-hidden="true">
+        <div class="terms"><span class="en">to get the hang of it</span><span class="arrow">→</span><span class="fr">prendre le coup de main</span></div>
+        <div></div>
+        <p class="note">It took me a week to get the hang of it.</p>
+        <div class="meta"><span class="chip">Exemple</span><span class="chip todo">À revoir</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- RÉVISER -->
+  <section class="view" id="view-review" hidden>
+    <div class="row">
+      <div class="seg" role="group" aria-label="Direction">
+        <button type="button" data-dir="en" aria-pressed="true">EN → FR</button>
+        <button type="button" data-dir="fr" aria-pressed="false">FR → EN</button>
+      </div>
+      <span class="spacer"></span>
+      <label for="incDone" style="flex-direction:row;align-items:center;text-transform:none;letter-spacing:0;font-weight:400;font-size:14px;gap:6px"><input type="checkbox" id="incDone"> Inclure les acquis</label>
+    </div>
+    <div class="flash" id="flash"></div>
+    <div class="row" id="flashBtns"></div>
+    <div class="progress" id="progress"></div>
+  </section>
+
+  <!-- SAUVEGARDE -->
+  <section class="view" id="view-backup" hidden>
+    <form class="backup" id="settingsForm" autocomplete="off">
+      <h2>Traduction automatique</h2>
+      <p>Renseigne l'adresse de ton relais Cloudflare et le mot de passe que tu as choisi (APP_PASSWORD).</p>
+      <label for="setUrl">Adresse du relais
+        <input type="text" id="setUrl" inputmode="url" autocapitalize="off" spellcheck="false" placeholder="https://carnet-deepl.tonpseudo.workers.dev">
+      </label>
+      <label for="setPw">Mot de passe
+        <input type="text" id="setPw" autocapitalize="off" spellcheck="false" placeholder="le même que dans Cloudflare">
+      </label>
+      <div class="seg" role="group" aria-label="Accent">
+        <button type="button" data-accent="US" aria-pressed="true">Anglais américain</button>
+        <button type="button" data-accent="GB" aria-pressed="false">Anglais britannique</button>
+      </div>
+      <p style="font-size:14px">L'accent choisi sert pour les traductions et pour la prononciation 🔊.</p>
+      <div class="row">
+        <span class="lookup" id="testResult"></span>
+        <span class="spacer"></span>
+        <button class="btn ghost" id="testBtn" type="button">Tester</button>
+        <button class="btn" type="submit">Enregistrer</button>
+      </div>
+    </form>
+    <div class="backup">
+      <h2>Exporter</h2>
+      <p>Ton carnet est enregistré uniquement dans ce téléphone. Exporte-le de temps en temps et garde le fichier dans Fichiers ou iCloud Drive.</p>
+      <p>Dernière sauvegarde : <span class="stat" id="lastBackup">jamais</span></p>
+      <div class="row"><button class="btn" id="exportBtn" type="button">Exporter le carnet</button></div>
+    </div>
+    <div class="backup">
+      <h2>Importer</h2>
+      <p>Choisis un fichier de sauvegarde. Les mots déjà présents ne sont pas dupliqués.</p>
+      <div class="row">
+        <input type="file" id="importFile" accept=".json,application/json" hidden>
+        <button class="btn ghost" id="importBtn" type="button">Choisir un fichier…</button>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const KEY = "carnet-anglais-v1", BKEY = "carnet-anglais-lastbackup";
+
+// ---------- Storage (local to this phone) ----------
+function load(){ try{ return JSON.parse(localStorage.getItem(KEY)) || []; }catch(e){ return []; } }
+function save(){
+  try{ localStorage.setItem(KEY, JSON.stringify(entries)); return true; }
+  catch(e){ toast("Impossible d'enregistrer : la mémoire du navigateur est pleine ou bloquée."); return false; }
+}
+let entries = load();
+try{ navigator.storage && navigator.storage.persist && navigator.storage.persist(); }catch(e){}
+
+const isStandalone = window.navigator.standalone === true || matchMedia("(display-mode: standalone)").matches;
+if(!isStandalone && /iPhone|iPad/.test(navigator.userAgent)){
+  notice("Pour l'installer : touche Partager puis « Sur l'écran d'accueil ». Ajoute ensuite tes mots depuis l'icône, pas depuis Safari.");
+}
+
+let origin="en", filter="all", editingId=null, confirmId=null;
+let dir="en", deck=[], pos=0, revealed=false;
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+
+function toast(msg){ const t=$("#toast"); t.textContent=msg; t.hidden=false; clearTimeout(toast.t); toast.t=setTimeout(()=>t.hidden=true,2400); }
+function notice(msg){ const n=$("#notice"); n.textContent=msg; n.hidden=!msg; }
+
+// ---------- Lookup links ----------
+function updateLinks(){
+  const en=$("#enInput").value.trim(), fr=$("#frInput").value.trim();
+  const q = origin==="fr" ? (fr||en) : (en||fr), enc=encodeURIComponent(q);
+  if(origin==="fr"){
+    $("#wrLink").href = "https://www.wordreference.com/fren/"+enc;
+    $("#lingLink").href = q ? "https://www.linguee.fr/francais-anglais/search?query="+enc : "https://www.linguee.fr/francais-anglais/";
+    $("#gtLink").href = "https://translate.google.com/?sl=fr&tl=en"+(q?"&text="+enc:"");
+  } else {
+    $("#wrLink").href = "https://www.wordreference.com/enfr/"+enc;
+    $("#lingLink").href = q ? "https://www.linguee.fr/anglais-francais/search?query="+enc : "https://www.linguee.fr/anglais-francais/";
+    $("#gtLink").href = "https://translate.google.com/?sl=en&tl=fr"+(q?"&text="+enc:"");
+  }
+}
+function setOrigin(o){
+  origin=o;
+  document.querySelectorAll("[data-origin]").forEach(b=>b.setAttribute("aria-pressed", b.dataset.origin===o));
+  const pair=$(".pair"); pair.prepend(o==="fr" ? $("#frInput").parentElement : $("#enInput").parentElement);
+  $("#frInput").placeholder = o==="fr" ? "ex. je n'en reviens pas" : "ex. prendre le coup de main";
+  $("#enInput").placeholder = o==="fr" ? "ex. I can't believe it" : "ex. to get the hang of it";
+  updateLinks();
+  if(typeof updateTranslateUI==="function") updateTranslateUI();
+}
+document.querySelectorAll("[data-origin]").forEach(b=>b.addEventListener("click",()=>setOrigin(b.dataset.origin)));
+["#enInput","#frInput"].forEach(s=>$(s).addEventListener("input",updateLinks));
+
+// ---------- Settings ----------
+const SKEY="carnet-anglais-settings";
+let settings={url:"",pw:"",accent:"US"};
+try{ Object.assign(settings, JSON.parse(localStorage.getItem(SKEY))||{}); }catch(e){}
+function saveSettings(){ try{ localStorage.setItem(SKEY,JSON.stringify(settings)); return true; }catch(e){ toast("Impossible d'enregistrer les réglages."); return false; } }
+const canTranslate = () => !!(settings.url && settings.pw);
+function fillSettings(){
+  $("#setUrl").value=settings.url; $("#setPw").value=settings.pw;
+  document.querySelectorAll("[data-accent]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.accent===settings.accent));
+}
+function readSettingsForm(){
+  let url=$("#setUrl").value.trim().replace(/\/+$/,"");
+  if(url && !/^https?:\/\//i.test(url)) url="https://"+url;
+  const accent=(document.querySelector("[data-accent][aria-pressed=true]")||{}).dataset?.accent||"US";
+  return {url, pw:$("#setPw").value.trim(), accent};
+}
+document.querySelectorAll("[data-accent]").forEach(b=>b.addEventListener("click",()=>{
+  document.querySelectorAll("[data-accent]").forEach(x=>x.setAttribute("aria-pressed",x===b));
+}));
+$("#settingsForm").addEventListener("submit",ev=>{
+  ev.preventDefault(); settings=readSettingsForm();
+  if(saveSettings()){ pickVoice(); updateTranslateUI(); toast("Réglages enregistrés"); }
+});
+$("#testBtn").addEventListener("click",async()=>{
+  const s=readSettingsForm(), out=$("#testResult");
+  if(!s.url||!s.pw){ out.textContent="Remplis l'adresse et le mot de passe."; return; }
+  out.textContent="Test en cours…";
+  try{ await callRelay(s,{ping:true}); out.textContent="✓ Connexion réussie"; }
+  catch(err){ out.textContent="✗ "+err.message; }
+});
+
+// ---------- Translation (via your Cloudflare relay → DeepL) ----------
+async function callRelay(s, body){
+  if(!navigator.onLine) throw new Error("Pas de connexion internet.");
+  const ctrl=new AbortController(), timer=setTimeout(()=>ctrl.abort(),15000);
+  let res;
+  try{
+    res=await fetch(s.url,{method:"POST",headers:{"Content-Type":"application/json","X-App-Password":s.pw},body:JSON.stringify(body),signal:ctrl.signal});
+  }catch(e){ throw new Error(e.name==="AbortError"?"Le relais met trop de temps à répondre.":"Relais injoignable : vérifie l'adresse."); }
+  finally{ clearTimeout(timer); }
+  let data={}; try{ data=await res.json(); }catch(e){}
+  if(!res.ok) throw new Error(data.message||`Erreur ${res.status}`);
+  return data;
+}
+function updateTranslateUI(){
+  const fromFr = origin==="fr";
+  $("#translateBtn").textContent = fromFr ? "Traduire en anglais" : "Traduire en français";
+  $("#translateHint").textContent = canTranslate() ? "" : "À configurer dans Réglages";
+}
+async function translateNow(){
+  if(!canTranslate()){ toast("Configure la traduction dans l'onglet Réglages."); return false; }
+  const fromFr = origin==="fr";
+  const src = fromFr ? $("#frInput") : $("#enInput"), dst = fromFr ? $("#enInput") : $("#frInput");
+  const text = src.value.trim();
+  if(!text){ toast(fromFr?"Écris d'abord la phrase en français.":"Écris d'abord le mot en anglais."); src.focus(); return false; }
+  const btn=$("#translateBtn"); btn.disabled=true; btn.textContent="Traduction…";
+  try{
+    const {translation}=await callRelay(settings,{
+      text, source: fromFr?"FR":"EN", target: fromFr?("EN-"+settings.accent):"FR",
+      context: $("#noteInput").value.trim()
+    });
+    if(!translation) throw new Error("DeepL n'a rien renvoyé.");
+    dst.value=translation; updateLinks();
+    return true;
+  }catch(err){ toast(err.message); return false; }
+  finally{ btn.disabled=false; updateTranslateUI(); }
+}
+$("#translateBtn").addEventListener("click",translateNow);
+
+// ---------- Pronunciation ----------
+let enVoice=null;
+function pickVoice(){
+  try{ const v=speechSynthesis.getVoices(), want = settings.accent==="GB" ? "en-GB" : "en-US";
+    enVoice = v.find(x=>x.lang.replace("_","-")===want) || v.find(x=>x.lang.startsWith("en")) || null;
+  }catch(e){}
+}
+if("speechSynthesis" in window){ pickVoice(); speechSynthesis.onvoiceschanged=pickVoice; }
+function speak(text){
+  if(!("speechSynthesis" in window)) return toast("La lecture audio n'est pas disponible.");
+  speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(text);
+  u.lang = enVoice ? enVoice.lang : (settings.accent==="GB"?"en-GB":"en-US"); if(enVoice) u.voice=enVoice; u.rate=.9;
+  speechSynthesis.speak(u);
+}
+
+// ---------- List ----------
+function visible(){
+  const q=$("#search").value.trim().toLowerCase();
+  return entries.filter(e=>{
+    if(filter==="todo" && e.status==="learned") return false;
+    if(filter==="done" && e.status!=="learned") return false;
+    return !q || [e.en,e.fr,e.note].some(v=>String(v||"").toLowerCase().includes(q));
+  }).sort((a,b)=>b.createdAt-a.createdAt);
+}
+const fmtDate = ms => new Date(ms).toLocaleDateString("fr-FR",{day:"numeric",month:"short"});
+function render(){
+  $("#countAll").textContent=entries.length;
+  $("#countTodo").textContent=entries.filter(e=>e.status!=="learned").length;
+  $("#empty").hidden = entries.length>0;
+  const items=visible(), list=$("#list");
+  if(entries.length && !items.length){ list.innerHTML=`<li class="lookup">Aucun résultat.</li>`; return; }
+  list.innerHTML = items.map(e=>{
+    const learned=e.status==="learned";
+    const confirm = confirmId===e.id ? `<div class="confirm">Supprimer « ${esc(e.en)} » ? <button class="btn" data-act="del-yes" data-id="${e.id}" style="background:var(--danger)">Supprimer</button><button class="btn ghost" data-act="del-no">Annuler</button></div>` : "";
+    return `<li class="entry">
+      <div class="terms"><span class="en">${esc(e.en)}</span><span class="arrow">→</span><span class="fr">${esc(e.fr)}</span></div>
+      <div class="icons">
+        <button class="icon" data-act="speak" data-id="${e.id}" aria-label="Écouter">🔊</button>
+        <button class="icon" data-act="edit" data-id="${e.id}">Modifier</button>
+        <button class="icon danger" data-act="del" data-id="${e.id}" aria-label="Supprimer">✕</button>
+      </div>
+      ${e.note?`<p class="note">${esc(e.note)}</p>`:""}
+      <div class="meta">
+        <span class="chip">${e.origin==="fr"?"FR → EN":"EN → FR"}</span>
+        <button class="chip ${learned?"done":"todo"}" data-act="toggle" data-id="${e.id}">${learned?"Acquis":"À revoir"}</button>
+        <span>ajouté le ${fmtDate(e.createdAt)}</span>
+      </div>${confirm}
+    </li>`;
+  }).join("");
+}
+function resetForm(){
+  $("#enInput").value=""; $("#frInput").value=""; $("#noteInput").value="";
+  editingId=null; $("#saveBtn").textContent="Ajouter au carnet"; $("#cancelEdit").hidden=true; updateLinks();
+}
+$("#list").addEventListener("click",ev=>{
+  const b=ev.target.closest("[data-act]"); if(!b) return;
+  const e=entries.find(x=>x.id===b.dataset.id);
+  switch(b.dataset.act){
+    case "speak": speak(e.en); break;
+    case "edit":
+      editingId=e.id; setOrigin(e.origin||"en");
+      $("#enInput").value=e.en; $("#frInput").value=e.fr; $("#noteInput").value=e.note||"";
+      $("#saveBtn").textContent="Enregistrer"; $("#cancelEdit").hidden=false; updateLinks();
+      $("#addForm").scrollIntoView({behavior:"smooth",block:"start"}); break;
+    case "del": confirmId=e.id; render(); break;
+    case "del-no": confirmId=null; render(); break;
+    case "del-yes": entries=entries.filter(x=>x.id!==b.dataset.id); confirmId=null; save(); render(); toast("Supprimé"); break;
+    case "toggle": e.status = e.status==="learned"?"new":"learned"; save(); render(); break;
+  }
+});
+$("#cancelEdit").addEventListener("click",resetForm);
+$("#search").addEventListener("input",render);
+document.querySelectorAll("[data-filter]").forEach(b=>b.addEventListener("click",()=>{
+  filter=b.dataset.filter; document.querySelectorAll("[data-filter]").forEach(x=>x.setAttribute("aria-pressed",x===b)); render();
+}));
+$("#addForm").addEventListener("submit",async ev=>{
+  ev.preventDefault();
+  let en=$("#enInput").value.trim(), fr=$("#frInput").value.trim();
+  const note=$("#noteInput").value.trim();
+  if(!en||!fr){
+    // One side filled and translation set up: translate first, let the user check, then they tap Add again.
+    if((en||fr) && canTranslate()){
+      if(!en && fr && origin!=="fr") setOrigin("fr");
+      if(en && !fr && origin!=="en") setOrigin("en");
+      if(await translateNow()) toast("Vérifie la traduction, puis touche Ajouter.");
+      return;
+    }
+    toast("Remplis l'anglais et le français."); (en?$("#frInput"):$("#enInput")).focus(); return;
+  }
+  if(editingId){ Object.assign(entries.find(x=>x.id===editingId),{en,fr,note,origin}); if(save()) toast("Modifié"); }
+  else{
+    const dup=entries.some(x=>x.en.toLowerCase()===en.toLowerCase());
+    entries.push({id:uid(),en,fr,note,origin,status:"new",createdAt:Date.now()});
+    if(save()) toast(dup?"Ajouté (tu l'avais déjà noté)":"Ajouté au carnet");
+  }
+  resetForm(); render();
+});
+
+// ---------- Tabs ----------
+document.querySelectorAll("[data-tab]").forEach(b=>b.addEventListener("click",()=>{
+  const t=b.dataset.tab;
+  document.querySelectorAll("[data-tab]").forEach(x=>x.setAttribute("aria-selected",x===b));
+  ["list","review","backup"].forEach(v=>$("#view-"+v).hidden = v!==t);
+  if(t==="review") startDeck();
+  if(t==="backup"){ showLastBackup(); fillSettings(); $("#testResult").textContent=""; }
+  window.scrollTo(0,0);
+}));
+
+// ---------- Review ----------
+function startDeck(){
+  const inc=$("#incDone").checked;
+  deck=entries.filter(e=>inc||e.status!=="learned").map(e=>e.id);
+  for(let i=deck.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[deck[i],deck[j]]=[deck[j],deck[i]];}
+  pos=0; revealed=false; renderCard();
+}
+function renderCard(){
+  const flash=$("#flash"), btns=$("#flashBtns"), prog=$("#progress");
+  if(!entries.length){ flash.innerHTML=`<div class="side">Rien à réviser</div><div>Ajoute des mots dans ton carnet, puis reviens ici.</div>`; btns.innerHTML=""; prog.textContent=""; return; }
+  if(pos>=deck.length){
+    flash.innerHTML = deck.length ? `<div class="side">Bravo</div><div class="front">Série terminée</div>` : `<div class="side">Tout est acquis</div><div class="note">Coche « Inclure les acquis » pour les revoir.</div>`;
+    btns.innerHTML=`<button class="btn" data-r="restart">Nouvelle série</button>`; prog.textContent=""; return;
+  }
+  const e=entries.find(x=>x.id===deck[pos]); if(!e){ pos++; return renderCard(); }
+  const front=dir==="en"?e.en:e.fr, back=dir==="en"?e.fr:e.en;
+  flash.innerHTML=`<div class="side">${dir==="en"?"Anglais":"Français"}</div><div class="front">${esc(front)}</div>`+
+    (revealed?`<div class="back">${esc(back)}</div>${e.note?`<div class="note">${esc(e.note)}</div>`:""}`:`<div class="note">Dis la réponse à voix haute, puis touche la carte.</div>`);
+  btns.innerHTML = revealed
+    ? `<button class="btn ghost" data-r="speak">🔊</button><span class="spacer"></span><button class="btn ghost" data-r="again">À revoir</button><button class="btn" data-r="know" style="background:var(--ok)">Je savais</button>`
+    : `<button class="btn ghost" data-r="speak">🔊</button><span class="spacer"></span><button class="btn" data-r="flip">Retourner</button>`;
+  prog.textContent=`Carte ${pos+1} sur ${deck.length}`;
+}
+$("#flash").addEventListener("click",()=>{ if(pos<deck.length && !revealed){ revealed=true; renderCard(); } });
+$("#flashBtns").addEventListener("click",ev=>{
+  const b=ev.target.closest("[data-r]"); if(!b) return;
+  const e=entries.find(x=>x.id===deck[pos]);
+  if(b.dataset.r==="restart") return startDeck();
+  if(b.dataset.r==="flip"){ revealed=true; return renderCard(); }
+  if(b.dataset.r==="speak"){ if(e) speak(e.en); return; }
+  if(e){ e.status = b.dataset.r==="know" ? "learned" : "new"; save(); render(); }
+  pos++; revealed=false; renderCard();
+});
+document.querySelectorAll("[data-dir]").forEach(b=>b.addEventListener("click",()=>{
+  dir=b.dataset.dir; document.querySelectorAll("[data-dir]").forEach(x=>x.setAttribute("aria-pressed",x===b)); revealed=false; renderCard();
+}));
+$("#incDone").addEventListener("change",startDeck);
+
+// ---------- Backup ----------
+function showLastBackup(){
+  let t=null; try{ t=localStorage.getItem(BKEY); }catch(e){}
+  $("#lastBackup").textContent = t ? new Date(+t).toLocaleDateString("fr-FR",{day:"numeric",month:"long",year:"numeric"}) : "jamais";
+}
+$("#exportBtn").addEventListener("click",async()=>{
+  if(!entries.length) return toast("Le carnet est vide.");
+  const d=new Date(), name=`carnet-anglais-${d.toISOString().slice(0,10)}.json`;
+  const blob=new Blob([JSON.stringify({app:"carnet-anglais",version:1,exportedAt:d.toISOString(),entries},null,2)],{type:"application/json"});
+  const file=new File([blob],name,{type:"application/json"});
+  try{
+    if(navigator.canShare && navigator.canShare({files:[file]})){ await navigator.share({files:[file],title:name}); }
+    else{ const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); a.remove(); }
+    try{ localStorage.setItem(BKEY,String(Date.now())); }catch(e){}
+    showLastBackup(); toast("Sauvegarde prête");
+  }catch(err){ if(err && err.name!=="AbortError") toast("L'export a échoué."); }
+});
+$("#importBtn").addEventListener("click",()=>$("#importFile").click());
+$("#importFile").addEventListener("change",async ev=>{
+  const f=ev.target.files[0]; ev.target.value=""; if(!f) return;
+  try{
+    const data=JSON.parse(await f.text()); const list=Array.isArray(data)?data:data.entries;
+    if(!Array.isArray(list)) throw 0;
+    const seen=new Set(entries.map(e=>(e.en+"|"+e.fr).toLowerCase())); let added=0;
+    for(const e of list){
+      if(!e || !e.en || !e.fr) continue;
+      const k=(e.en+"|"+e.fr).toLowerCase(); if(seen.has(k)) continue; seen.add(k);
+      entries.push({id:uid(),en:String(e.en),fr:String(e.fr),note:String(e.note||""),origin:e.origin==="fr"?"fr":"en",status:e.status==="learned"?"learned":"new",createdAt:+e.createdAt||Date.now()});
+      added++;
+    }
+    save(); render(); toast(added?`${added} entrée(s) importée(s)`:"Rien de nouveau dans ce fichier");
+  }catch(e){ toast("Ce fichier n'est pas une sauvegarde du carnet."); }
+});
+
+// ---------- Offline ----------
+if("serviceWorker" in navigator){ window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{})); }
+
+updateTranslateUI(); render(); renderCard();
+</script>
+</body>
+</html>
