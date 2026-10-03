@@ -51,6 +51,13 @@ h1 .en{color:var(--blue)}
 
 form.add{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;display:grid;gap:14px}
 .pair{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.pair.single{grid-template-columns:1fr}
+.switchRow{display:flex;align-items:center;gap:12px;background:none;border:0;padding:2px 0;font:inherit;font-size:15px;color:var(--ink);cursor:pointer;text-align:left;justify-self:start}
+.switchRow .track{flex:none;width:46px;height:28px;border-radius:999px;background:var(--line);position:relative;transition:background .2s}
+.switchRow .track::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:var(--card);box-shadow:0 1px 3px rgba(0,0,0,.25);transition:transform .2s}
+.switchRow[aria-checked=true] .track{background:var(--blue)}
+.switchRow[aria-checked=true] .track::after{transform:translateX(18px)}
+@media (prefers-reduced-motion:reduce){.switchRow .track,.switchRow .track::after{transition:none}}
 @media (max-width:560px){.pair{grid-template-columns:1fr}}
 label{display:flex;flex-direction:column;gap:5px;font-size:12px;font-weight:700;color:var(--muted);letter-spacing:.04em;text-transform:uppercase;min-width:0}
 label .flag{font-weight:400;text-transform:none;letter-spacing:0}
@@ -165,10 +172,13 @@ button.chip{cursor:pointer}
           <input type="text" id="frInput" placeholder="ex. prendre le coup de main" autocapitalize="off">
         </label>
       </div>
+      <button type="button" class="switchRow" id="ownSwitch" role="switch" aria-checked="false">
+        <span class="track" aria-hidden="true"></span><span id="ownLabel">✏️ Ma propre traduction</span>
+      </button>
       <label for="noteInput">Exemple ou contexte <span class="flag">(facultatif)</span>
         <textarea id="noteInput" rows="1" placeholder="ex. It took me a week to get the hang of it." autocapitalize="sentences"></textarea>
       </label>
-      <div class="row">
+      <div class="row" id="translateRow">
         <button class="btn ghost" id="translateBtn" type="button">Traduire avec DeepL</button>
         <span class="lookup" id="translateHint"></span>
       </div>
@@ -390,10 +400,37 @@ async function callRelay(s, body){
   if(!res.ok) throw new Error(data.message||`Erreur ${res.status}`);
   return data;
 }
+let ownMode=false; try{ ownMode=localStorage.getItem("carnet-anglais-own")==="1"; }catch(e){}
+// Auto mode hides the target-language field: tapping Add translates with DeepL and saves.
+const autoMode = () => canTranslate() && !ownMode && !editingId;
 function updateTranslateUI(){
-  const fromFr = origin==="fr";
+  const fromFr = origin==="fr", auto = autoMode();
+  const targetLabel = (fromFr ? $("#enInput") : $("#frInput")).parentElement;
+  const sourceLabel = (fromFr ? $("#frInput") : $("#enInput")).parentElement;
+  sourceLabel.hidden = false; targetLabel.hidden = auto;
+  $(".pair").classList.toggle("single", auto);
+  $("#ownSwitch").hidden = !canTranslate() || !!editingId;
+  $("#ownSwitch").setAttribute("aria-checked", String(ownMode));
+  $("#ownLabel").textContent = fromFr ? "✏️ Ma propre traduction" : "✏️ Ma propre traduction";
+  $("#translateRow").hidden = auto;
+  $("#translateBtn").hidden = !canTranslate();
   $("#translateBtn").textContent = fromFr ? "Traduire en anglais" : "Traduire en français";
-  $("#translateHint").textContent = canTranslate() ? "" : "À configurer dans Réglages";
+  $("#translateHint").textContent = canTranslate() ? "" : "Traduction automatique : à configurer dans Réglages";
+}
+$("#ownSwitch").addEventListener("click",()=>{
+  ownMode=!ownMode; try{ localStorage.setItem("carnet-anglais-own", ownMode?"1":"0"); }catch(e){}
+  updateTranslateUI();
+  if(ownMode) (origin==="fr" ? $("#enInput") : $("#frInput")).focus();
+});
+async function fetchTranslation(){
+  const fromFr = origin==="fr";
+  const text = (fromFr ? $("#frInput") : $("#enInput")).value.trim();
+  const {translation}=await callRelay(settings,{
+    text, source: fromFr?"FR":"EN", target: fromFr?("EN-"+settings.accent):"FR",
+    context: $("#noteInput").value.trim()
+  });
+  if(!translation) throw new Error("DeepL n'a rien renvoyé.");
+  return translation;
 }
 async function translateNow(){
   if(!canTranslate()){ toast("Configure la traduction dans l'onglet Réglages."); return false; }
@@ -403,12 +440,7 @@ async function translateNow(){
   if(!text){ toast(fromFr?"Écris d'abord la phrase en français.":"Écris d'abord le mot en anglais."); src.focus(); return false; }
   const btn=$("#translateBtn"); btn.disabled=true; btn.textContent="Traduction…";
   try{
-    const {translation}=await callRelay(settings,{
-      text, source: fromFr?"FR":"EN", target: fromFr?("EN-"+settings.accent):"FR",
-      context: $("#noteInput").value.trim()
-    });
-    if(!translation) throw new Error("DeepL n'a rien renvoyé.");
-    dst.value=translation; updateLinks();
+    dst.value=await fetchTranslation(); updateLinks();
     return true;
   }catch(err){ toast(err.message); return false; }
   finally{ btn.disabled=false; updateTranslateUI(); }
@@ -467,7 +499,7 @@ function render(){
 }
 function resetForm(){
   $("#enInput").value=""; $("#frInput").value=""; $("#noteInput").value="";
-  editingId=null; $("#saveBtn").textContent="Ajouter au carnet"; $("#cancelEdit").hidden=true; updateLinks();
+  editingId=null; $("#saveBtn").textContent="Ajouter au carnet"; $("#cancelEdit").hidden=true; updateLinks(); updateTranslateUI();
 }
 $("#list").addEventListener("click",ev=>{
   const b=ev.target.closest("[data-act]"); if(!b) return;
@@ -477,7 +509,7 @@ $("#list").addEventListener("click",ev=>{
     case "edit":
       editingId=e.id; setOrigin(e.origin||"en");
       $("#enInput").value=e.en; $("#frInput").value=e.fr; $("#noteInput").value=e.note||"";
-      $("#saveBtn").textContent="Enregistrer"; $("#cancelEdit").hidden=false; updateLinks();
+      $("#saveBtn").textContent="Enregistrer"; $("#cancelEdit").hidden=false; updateLinks(); updateTranslateUI();
       $("#addForm").scrollIntoView({behavior:"smooth",block:"start"}); break;
     case "del": confirmId=e.id; render(); break;
     case "del-no": confirmId=null; render(); break;
@@ -494,6 +526,23 @@ $("#addForm").addEventListener("submit",async ev=>{
   ev.preventDefault();
   let en=$("#enInput").value.trim(), fr=$("#frInput").value.trim();
   const note=$("#noteInput").value.trim();
+  if(autoMode()){
+    const fromFr = origin==="fr", src = fromFr ? $("#frInput") : $("#enInput");
+    if(!src.value.trim()){ toast(fromFr?"Écris d'abord la phrase en français.":"Écris d'abord le mot en anglais."); src.focus(); return; }
+    const btn=$("#saveBtn"); btn.disabled=true; btn.textContent="Traduction…";
+    try{
+      const t = await fetchTranslation();
+      if(fromFr){ fr=src.value.trim(); en=t; } else { en=src.value.trim(); fr=t; }
+    }catch(err){
+      toast(err.message+" Active « ma propre traduction » pour l'écrire toi-même.");
+      return;
+    }finally{ btn.disabled=false; btn.textContent="Ajouter au carnet"; }
+    const dup=entries.some(x=>x.en.toLowerCase()===en.toLowerCase());
+    entries.push({id:uid(),en,fr,note,origin,status:"new",createdAt:Date.now()});
+    if(save()) toast((dup?"Déjà noté, ajouté quand même : ":"Ajouté : ")+(fromFr?en:fr));
+    resetForm(); render(); src.focus();
+    return;
+  }
   if(!en||!fr){
     // One side filled and translation set up: translate first, let the user check, then they tap Add again.
     if((en||fr) && canTranslate()){
