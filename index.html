@@ -57,6 +57,11 @@ form.add{background:var(--card);border:1px solid var(--line);border-radius:16px;
 .result .rflag{font-size:26px;line-height:1;flex:none}
 .result .rtext{flex:1;min-width:0;font-family:var(--f-display);font-weight:700;font-size:21px;line-height:1.25;color:var(--blue);overflow-wrap:anywhere}
 .result .icon{flex:none;font-size:20px}
+.result .acts{display:flex;flex-direction:column;gap:4px;flex:none}
+.result .icon.retry{border-radius:10px;transition:background .2s}
+.result .icon.retry.attn{background:var(--hl);color:var(--hl-ink);animation:nudge 1.2s ease-in-out 2}
+@keyframes nudge{0%,100%{transform:rotate(0)}50%{transform:rotate(180deg)}}
+@media (prefers-reduced-motion:reduce){.result .icon.retry.attn{animation:none}}
 @keyframes resIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){.result{animation:none}}
 .seg.modeSeg{display:grid;grid-template-columns:1fr 1fr;width:100%}
@@ -199,7 +204,10 @@ button.chip{cursor:pointer}
       </div>
       <div class="result" id="result" hidden aria-live="polite">
         <span class="rflag" id="resultFlag"></span><div class="rtext" id="resultText"></div>
-        <button class="icon" type="button" id="resultSpeak" aria-label="Écouter">🔊</button>
+        <div class="acts">
+          <button class="icon" type="button" id="resultSpeak" aria-label="Écouter">🔊</button>
+          <button class="icon retry" type="button" id="resultRetry" aria-label="Relancer la traduction avec le contexte">🔄</button>
+        </div>
       </div>
       <button type="button" class="switchRow" id="ownSwitch" role="switch" aria-checked="false">
         <span class="track" aria-hidden="true"></span><span id="ownLabel">✏️ Ma propre traduction</span>
@@ -575,12 +583,28 @@ function showResult(){
     $("#resultFlag").textContent = origin==="fr" ? (settings.accent==="GB"?"🇬🇧":"🇺🇸") : "🇫🇷";
     $("#resultText").textContent = pending.text;
     $("#resultSpeak").hidden = origin!=="fr"; // only the English side is spoken
+    // Highlight 🔄 when the context changed since this translation was made.
+    const stale = $("#noteInput").value.trim() !== (pending.ctx||"");
+    $("#resultRetry").classList.toggle("attn", stale);
+    $("#resultRetry").setAttribute("aria-label", stale ? "Le contexte a changé : relancer la traduction" : "Relancer la traduction");
   }
   updateSaveLabel();
 }
 function clearPending(){ pending=null; showResult(); }
 ["#enInput","#frInput"].forEach(s=>$(s).addEventListener("input",showResult));
 $("#resultSpeak").addEventListener("click",()=>{ if(pending) speak(pending.text); });
+$("#noteInput").addEventListener("input",()=>{ if(pending) showResult(); });
+$("#resultRetry").addEventListener("click",async()=>{
+  if(!pendingValid()) return;
+  const btn=$("#resultRetry"), txt=$("#resultText"); btn.disabled=true; txt.style.opacity=".45";
+  try{
+    const t = await fetchTranslation();
+    const changed = t !== pending.text;
+    pending = {origin, src:pending.src, text:t, ctx:$("#noteInput").value.trim()};
+    toast(changed ? "Traduction mise à jour" : "Même traduction avec ce contexte");
+  }catch(err){ toast(err.message); }
+  finally{ btn.disabled=false; txt.style.opacity=""; showResult(); }
+});
 $("#addForm").addEventListener("submit",async ev=>{
   ev.preventDefault();
   let en=$("#enInput").value.trim(), fr=$("#frInput").value.trim();
@@ -593,7 +617,7 @@ $("#addForm").addEventListener("submit",async ev=>{
       const btn=$("#saveBtn"), text=src.value.trim(); btn.disabled=true; btn.textContent="Traduction…";
       try{
         const t = await fetchTranslation();
-        pending = {origin, src:text, text:t};
+        pending = {origin, src:text, text:t, ctx:$("#noteInput").value.trim()};
       }catch(err){
         toast(err.message+" Active « Ma propre traduction » pour l'écrire toi-même.");
       }finally{ btn.disabled=false; showResult(); }
