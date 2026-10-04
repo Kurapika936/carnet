@@ -191,10 +191,10 @@ button.chip{cursor:pointer}
       </button>
       <div class="pair">
         <label for="enInput">Anglais <span class="flag">(mot ou expression)</span>
-          <input type="text" id="enInput" placeholder="ex. to get the hang of it" autocapitalize="off" spellcheck="false" lang="en">
+          <input type="text" id="enInput" autocapitalize="off" spellcheck="false" lang="en">
         </label>
         <label for="frInput">Français
-          <input type="text" id="frInput" placeholder="ex. prendre le coup de main" autocapitalize="off">
+          <input type="text" id="frInput" autocapitalize="off">
         </label>
       </div>
       <div class="result" id="result" hidden aria-live="polite">
@@ -205,7 +205,7 @@ button.chip{cursor:pointer}
         <span class="track" aria-hidden="true"></span><span id="ownLabel">✏️ Ma propre traduction</span>
       </button>
       <label for="noteInput">Exemple ou contexte <span class="flag">(facultatif)</span>
-        <textarea id="noteInput" rows="1" placeholder="ex. It took me a week to get the hang of it." autocapitalize="sentences"></textarea>
+        <textarea id="noteInput" rows="1" autocapitalize="sentences"></textarea>
       </label>
       <div class="row" id="translateRow">
         <button class="btn ghost" id="translateBtn" type="button">Traduire avec DeepL</button>
@@ -361,8 +361,6 @@ function setOrigin(o){
   try{ localStorage.setItem("carnet-anglais-origin",o); }catch(e){}
   renderSwap();
   const pair=$(".pair"); pair.prepend(o==="fr" ? $("#frInput").parentElement : $("#enInput").parentElement);
-  $("#frInput").placeholder = o==="fr" ? "ex. je n'en reviens pas" : "ex. prendre le coup de main";
-  $("#enInput").placeholder = o==="fr" ? "ex. I can't believe it" : "ex. to get the hang of it";
   updateLinks();
   if(typeof updateTranslateUI==="function") updateTranslateUI();
 }
