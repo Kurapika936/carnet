@@ -119,6 +119,20 @@ body::before{content:"";position:fixed;left:0;right:0;top:0;height:env(safe-area
 .tools input[type=search]{flex:1 1 220px;min-width:0;background:var(--card);border-radius:999px;padding:10px 16px}
 
 ul.list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.kbdHint{display:none;text-align:center;font-size:13px;color:var(--muted)}
+.kbdHint kbd{font:inherit;font-weight:700;border:1px solid var(--line);border-bottom-width:2px;border-radius:6px;padding:0 6px;background:var(--card)}
+/* Computer: wider page, two-column word list, centred form and cards, keyboard hints. */
+@media (min-width:1000px){
+  .wrap{max-width:1080px}
+  #addForm{width:100%;max-width:760px;margin:0 auto}
+  ul.list{display:grid;grid-template-columns:1fr 1fr;align-items:start}
+  #revCards > *{width:100%;max-width:600px;margin-left:auto;margin-right:auto}
+}
+@media (hover:hover) and (pointer:fine){
+  .swiper{cursor:grab}
+  .swiper.dragging{cursor:grabbing}
+  .kbdHint{display:block}
+}
 .entry{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 14px 12px 16px;display:grid;grid-template-columns:1fr auto;gap:6px 10px}
 /* English and French flow on one line, same size; a long pair wraps as one sentence. */
 .entry .terms{grid-column:1/-1;min-width:0;margin:0;font-size:18px;line-height:1.4;overflow-wrap:anywhere}
@@ -266,6 +280,7 @@ button.chip{cursor:pointer}
     <div class="flash" id="flash"></div>
     <div class="row" id="flashBtns"></div>
     <div class="progress" id="progress"></div>
+    <p class="kbdHint"><kbd>←</kbd> à revoir · <kbd>Espace</kbd> retourner · <kbd>→</kbd> je savais</p>
     </div>
   </section>
 
@@ -301,8 +316,14 @@ button.chip{cursor:pointer}
       </div>
     </form>
     <div class="backup">
+      <h2>🔄 Synchronisation</h2>
+      <p>Tes mots sont partagés entre tous tes appareils reliés au même relais (iPhone, PC…), et sauvegardés en ligne.</p>
+      <p>État : <span class="stat" id="syncStatus">—</span></p>
+      <div class="row"><button class="btn ghost" id="syncBtn" type="button">Synchroniser maintenant</button></div>
+    </div>
+    <div class="backup">
       <h2>Exporter</h2>
-      <p>Ton carnet est enregistré uniquement dans ce téléphone. Exporte-le de temps en temps et garde le fichier dans Fichiers ou iCloud Drive.</p>
+      <p>Une copie de secours dans un fichier, à garder dans Fichiers, iCloud Drive ou sur ton PC.</p>
       <p>Dernière sauvegarde : <span class="stat" id="lastBackup">jamais</span></p>
       <div class="row"><button class="btn" id="exportBtn" type="button">Exporter le carnet</button></div>
     </div>
@@ -323,13 +344,31 @@ const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const KEY = "carnet-anglais-v1", BKEY = "carnet-anglais-lastbackup";
 
-// ---------- Storage (local to this phone) ----------
+// ---------- Storage (local copy, kept in sync with the relay when set up) ----------
+const DKEY = "carnet-anglais-deleted";   // {id: deletedAt} so deletions reach other devices
 function load(){ try{ return JSON.parse(localStorage.getItem(KEY)) || []; }catch(e){ return []; } }
-function save(){
-  try{ localStorage.setItem(KEY, JSON.stringify(entries)); return true; }
+const sigOf = e => JSON.stringify([e.en,e.fr,e.note||"",e.origin,e.status]);
+let entries = load(), deleted = {}, lastSig = {};
+try{ deleted = JSON.parse(localStorage.getItem(DKEY)) || {}; }catch(e){}
+for(const e of entries){ if(!e.updatedAt) e.updatedAt = e.createdAt || Date.now(); lastSig[e.id] = sigOf(e); }
+function persist(){
+  try{ localStorage.setItem(KEY, JSON.stringify(entries)); localStorage.setItem(DKEY, JSON.stringify(deleted)); return true; }
   catch(e){ toast("Impossible d'enregistrer : la mémoire du navigateur est pleine ou bloquée."); return false; }
 }
-let entries = load();
+// Every change goes through save(): it time-stamps what changed and records deletions,
+// then schedules a sync. Call sites don't need to know about syncing.
+function save(){
+  const now = Date.now(), seen = new Set();
+  for(const e of entries){
+    seen.add(e.id); const sig = sigOf(e);
+    if(lastSig[e.id] !== sig){ e.updatedAt = now; lastSig[e.id] = sig; }
+    delete deleted[e.id];
+  }
+  for(const id of Object.keys(lastSig)) if(!seen.has(id)){ deleted[id] = now; delete lastSig[id]; }
+  const ok = persist();
+  if(typeof scheduleSync==="function") scheduleSync();
+  return ok;
+}
 try{ navigator.storage && navigator.storage.persist && navigator.storage.persist(); }catch(e){}
 
 const isStandalone = window.navigator.standalone === true || matchMedia("(display-mode: standalone)").matches;
@@ -449,15 +488,81 @@ document.querySelectorAll("[data-accent]").forEach(b=>b.addEventListener("click"
 }));
 $("#settingsForm").addEventListener("submit",ev=>{
   ev.preventDefault(); settings=readSettingsForm();
-  if(saveSettings()){ pickVoice(); updateTranslateUI(); renderSwap(); render(); toast("Réglages enregistrés"); }
+  if(saveSettings()){ pickVoice(); updateTranslateUI(); renderSwap(); render(); toast("Réglages enregistrés"); syncNow(); }
 });
 $("#testBtn").addEventListener("click",async()=>{
   const s=readSettingsForm(), out=$("#testResult");
   if(!s.url||!s.pw){ out.textContent="Remplis l'adresse et le mot de passe."; return; }
   out.textContent="Test en cours…";
-  try{ await callRelay(s,{ping:true}); out.textContent="✓ Connexion réussie"; }
+  try{
+    const r = await callRelay(s,{ping:true});
+    out.textContent = r.sync ? "✓ Connexion réussie · synchro active" : "✓ Connexion réussie · synchro pas encore activée";
+  }
   catch(err){ out.textContent="✗ "+err.message; }
 });
+
+// ---------- Sync (via the same Cloudflare relay) ----------
+// Each device keeps a full local copy and works offline. A sync sends everything
+// (including deletion markers); the relay merges "most recent change wins" per word
+// and returns the merged list, which is merged again locally in case you edited meanwhile.
+const SYNCKEY="carnet-anglais-lastsync";
+let syncing=false, syncAgain=false, syncTimer=null, syncOff="";
+function setSyncStatus(t){ const el=$("#syncStatus"); if(el) el.textContent=t; }
+function syncStatusIdle(){
+  if(!canTranslate()) return setSyncStatus("relais non configuré (voir ci-dessus)");
+  if(syncOff) return setSyncStatus(syncOff);
+  let t=null; try{ t=+localStorage.getItem(SYNCKEY); }catch(e){}
+  setSyncStatus(t ? "à jour ("+new Date(t).toLocaleString("fr-FR",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})+")" : "jamais synchronisé");
+}
+function scheduleSync(delay=1500){
+  if(!canTranslate()) return;
+  clearTimeout(syncTimer); syncTimer=setTimeout(()=>syncNow(), delay);
+}
+function mergeLists(a,b){
+  const m=new Map();
+  for(const e of [...a,...b]){ const c=m.get(e.id); if(!c || (+e.updatedAt||0) > (+c.updatedAt||0)) m.set(e.id,e); }
+  return [...m.values()];
+}
+function localSnapshot(){
+  return [...entries.map(e=>({...e})), ...Object.entries(deleted).map(([id,t])=>({id,deleted:true,updatedAt:t}))];
+}
+function applyRemote(remote){
+  const merged = mergeLists(localSnapshot(), remote);
+  const remoteAt = new Map(remote.map(e=>[e.id,+e.updatedAt||0]));
+  const ne=[], nd={};
+  for(const e of merged){ if(e.deleted) nd[e.id]=+e.updatedAt||0; else ne.push(e); }
+  const changed = JSON.stringify(ne.map(e=>[e.id,e.updatedAt]).sort()) !== JSON.stringify(entries.map(e=>[e.id,e.updatedAt]).sort());
+  entries=ne; deleted=nd; lastSig={}; for(const e of entries) lastSig[e.id]=sigOf(e);
+  persist();
+  if(changed){ render(); if(!$("#revCards").hidden && pos>=deck.length) renderCard(); }
+  // Something local is newer than what the relay has (edited during the sync): push again.
+  if(merged.some(e=>remoteAt.get(e.id)!==(+e.updatedAt||0))) syncAgain=true;
+}
+async function syncNow(manual){
+  if(!canTranslate()){ syncStatusIdle(); if(manual) toast("Configure d'abord le relais dans les Réglages."); return; }
+  if(syncing){ syncAgain=true; return; }
+  clearTimeout(syncTimer);
+  syncing=true; setSyncStatus("synchronisation…"); $("#syncBtn") && ($("#syncBtn").disabled=true);
+  try{
+    const data = await callRelay(settings,{sync:true, entries:localSnapshot()});
+    syncOff="";
+    applyRemote(Array.isArray(data.entries)?data.entries:[]);
+    try{ localStorage.setItem(SYNCKEY,String(Date.now())); }catch(e){}
+    syncStatusIdle();
+    if(manual) toast("Synchronisé");
+  }catch(err){
+    syncOff = /WORDS/.test(err.message) ? "pas encore activée (liaison WORDS manquante dans Cloudflare)"
+            : /Rien à traduire/.test(err.message) ? "pas encore activée (le code du relais est à mettre à jour)" : "";
+    setSyncStatus(syncOff || ("échec : "+err.message));
+    if(manual) toast(err.message);
+  }finally{
+    syncing=false; $("#syncBtn") && ($("#syncBtn").disabled=false);
+    if(syncAgain){ syncAgain=false; scheduleSync(400); }
+  }
+}
+$("#syncBtn").addEventListener("click",()=>syncNow(true));
+window.addEventListener("online",()=>scheduleSync(300));
+document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="visible") scheduleSync(300); });
 
 // ---------- Translation (via your Cloudflare relay → DeepL) ----------
 async function callRelay(s, body){
@@ -673,7 +778,9 @@ $("#addForm").addEventListener("submit",async ev=>{
     toast("Remplis l'anglais et le français."); (en?$("#frInput"):$("#enInput")).focus(); return;
   }
   const wasEditing = !!editingId;
-  if(editingId){ Object.assign(entries.find(x=>x.id===editingId),{en,fr,note,origin}); if(save()) toast("Modifié"); }
+  const target = editingId && entries.find(x=>x.id===editingId);
+  if(editingId && !target){ toast("Ce mot a été supprimé sur un autre appareil."); resetForm(); showTab("review"); return; }
+  if(target){ Object.assign(target,{en,fr,note,origin}); if(save()) toast("Modifié"); }
   else{
     const dup=entries.some(x=>x.en.toLowerCase()===en.toLowerCase());
     entries.push({id:uid(),en,fr,note,origin,status:"new",createdAt:Date.now()});
@@ -688,7 +795,7 @@ function showTab(t){
   document.querySelectorAll("[data-tab]").forEach(x=>x.setAttribute("aria-selected",x.dataset.tab===t));
   ["list","review","backup"].forEach(v=>$("#view-"+v).hidden = v!==t);
   if(t==="review" && revMode==="cards") startDeck();
-  if(t==="backup"){ showLastBackup(); fillSettings(); $("#testResult").textContent=""; }
+  if(t==="backup"){ showLastBackup(); fillSettings(); $("#testResult").textContent=""; if(!syncing) syncStatusIdle(); }
   window.scrollTo(0,0);
 }
 document.querySelectorAll("[data-tab]").forEach(b=>b.addEventListener("click",()=>{
@@ -804,6 +911,16 @@ $("#flash").addEventListener("keydown",ev=>{
   else if(ev.key==="ArrowRight"){ ev.preventDefault(); flyOut(true); }
   else if(ev.key==="ArrowLeft"){ ev.preventDefault(); flyOut(false); }
 });
+document.addEventListener("keydown",ev=>{
+  if($("#view-review").hidden || $("#revCards").hidden) return;
+  if(ev.target.id==="card3d" || !$("#swiper")) return; // the focused card handles its own keys
+  const typing = ev.target.closest && ev.target.closest("input,textarea,select,[contenteditable]");
+  if(typing) return;
+  const onButton = ev.target.closest && ev.target.closest("button,a");
+  if(ev.key===" "||ev.key==="Enter"){ if(onButton) return; ev.preventDefault(); flipCard(); }
+  else if(ev.key==="ArrowRight"){ ev.preventDefault(); flyOut(true); }
+  else if(ev.key==="ArrowLeft"){ ev.preventDefault(); flyOut(false); }
+});
 $("#flashBtns").addEventListener("click",ev=>{
   const b=ev.target.closest("[data-r]"); if(!b) return;
   const e=entries.find(x=>x.id===deck[pos]);
@@ -873,6 +990,7 @@ if("serviceWorker" in navigator){
 let savedOrigin="en"; try{ savedOrigin=localStorage.getItem("carnet-anglais-origin")||"en"; }catch(e){}
 setOrigin(savedOrigin==="fr"?"fr":"en");
 updateTranslateUI(); render(); setRevMode(revMode);
+syncStatusIdle(); scheduleSync(500);
 </script>
 </body>
 </html>
