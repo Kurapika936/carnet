@@ -57,6 +57,21 @@ form.add{background:var(--card);border:1px solid var(--line);border-radius:16px;
 .result .rflag{font-size:26px;line-height:1;flex:none}
 .result .rtext{flex:1;min-width:0;font-family:var(--f-display);font-weight:700;font-size:21px;line-height:1.25;color:var(--blue);overflow-wrap:anywhere}
 .result .icon{flex:none;font-size:20px}
+.result{flex-direction:column;align-items:stretch}
+.result .rmain{display:flex;align-items:center;gap:12px}
+.ralts{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:13px;color:var(--muted)}
+.ralts button{font:inherit;font-size:14px;border:1px solid var(--blue);color:var(--blue);background:var(--card);border-radius:999px;padding:4px 10px;cursor:pointer}
+.rex{display:flex;align-items:center;gap:10px;border-top:1px solid var(--line);padding-top:10px}
+.rex-txt{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;overflow-wrap:anywhere}
+.rex-en{font-style:italic;color:var(--ink)}
+.rex-fr{font-size:14px;color:var(--muted)}
+.rtip{margin:0;font-size:14px;color:var(--ink)}
+.rengine{margin:0;font-size:12px;color:var(--muted)}
+.entry .ex{grid-column:1/-1;margin:0;font-size:14px;color:var(--muted);overflow-wrap:anywhere}
+.entry .ex i{color:var(--ink)}
+.face .ex{font-size:15px;color:var(--muted);max-width:50ch}
+.face .ex i{color:var(--ink)}
+.face .tip{font-size:14px;max-width:50ch}
 .result .acts{display:flex;flex-direction:column;gap:4px;flex:none}
 .result .icon.retry{border-radius:10px;transition:background .2s}
 .result .icon.retry.attn{background:var(--hl);color:var(--hl-ink);animation:nudge 1.2s ease-in-out 2}
@@ -218,11 +233,20 @@ button.chip{cursor:pointer}
         </label>
       </div>
       <div class="result" id="result" hidden aria-live="polite">
-        <span class="rflag" id="resultFlag"></span><div class="rtext" id="resultText"></div>
-        <div class="acts">
-          <button class="icon" type="button" id="resultSpeak" aria-label="Écouter">🔊</button>
-          <button class="icon retry" type="button" id="resultRetry" aria-label="Relancer la traduction avec le contexte">🔄</button>
+        <div class="rmain">
+          <span class="rflag" id="resultFlag"></span><div class="rtext" id="resultText"></div>
+          <div class="acts">
+            <button class="icon" type="button" id="resultSpeak" aria-label="Écouter">🔊</button>
+            <button class="icon retry" type="button" id="resultRetry" aria-label="Relancer la traduction avec le contexte">🔄</button>
+          </div>
         </div>
+        <div class="ralts" id="resultAlts" hidden></div>
+        <div class="rex" id="resultEx" hidden>
+          <div class="rex-txt"><span class="rex-en" id="resultExEn"></span><span class="rex-fr" id="resultExFr"></span></div>
+          <button class="icon" type="button" id="resultExSpeak" aria-label="Écouter l'exemple">🔊</button>
+        </div>
+        <p class="rtip" id="resultTip" hidden></p>
+        <p class="rengine" id="resultEngine" hidden></p>
       </div>
       <button type="button" class="switchRow" id="ownSwitch" role="switch" aria-checked="false">
         <span class="track" aria-hidden="true"></span><span id="ownLabel">✏️ Ma propre traduction</span>
@@ -303,6 +327,11 @@ button.chip{cursor:pointer}
       <label for="setPw">Mot de passe
         <input type="text" id="setPw" autocapitalize="off" spellcheck="false" placeholder="le même que dans Cloudflare">
       </label>
+      <div class="seg fullSeg" role="group" aria-label="Moteur de traduction">
+        <button type="button" data-engine="claude" aria-pressed="true">🤖 Claude</button>
+        <button type="button" data-engine="deepl" aria-pressed="false">🔷 DeepL</button>
+      </div>
+      <p style="font-size:14px">Claude traduit et ajoute un exemple et une note d'usage. DeepL ne fait que traduire ; il sert aussi de secours si Claude ne répond pas.</p>
       <div class="seg fullSeg" role="group" aria-label="Accent">
         <button type="button" data-accent="US" aria-pressed="true">🇺🇸 Américain</button>
         <button type="button" data-accent="GB" aria-pressed="false">🇬🇧 Britannique</button>
@@ -347,7 +376,7 @@ const KEY = "carnet-anglais-v1", BKEY = "carnet-anglais-lastbackup";
 // ---------- Storage (local copy, kept in sync with the relay when set up) ----------
 const DKEY = "carnet-anglais-deleted";   // {id: deletedAt} so deletions reach other devices
 function load(){ try{ return JSON.parse(localStorage.getItem(KEY)) || []; }catch(e){ return []; } }
-const sigOf = e => JSON.stringify([e.en,e.fr,e.note||"",e.origin,e.status]);
+const sigOf = e => JSON.stringify([e.en,e.fr,e.note||"",e.origin,e.status,e.exEn||"",e.exFr||"",e.tip||""]);
 let entries = load(), deleted = {}, lastSig = {};
 try{ deleted = JSON.parse(localStorage.getItem(DKEY)) || {}; }catch(e){}
 for(const e of entries){ if(!e.updatedAt) e.updatedAt = e.createdAt || Date.now(); lastSig[e.id] = sigOf(e); }
@@ -469,22 +498,27 @@ applyTheme();
 
 // ---------- Settings ----------
 const SKEY="carnet-anglais-settings";
-let settings={url:"",pw:"",accent:"US"};
+let settings={url:"",pw:"",accent:"US",engine:"claude"};
 try{ Object.assign(settings, JSON.parse(localStorage.getItem(SKEY))||{}); }catch(e){}
 function saveSettings(){ try{ localStorage.setItem(SKEY,JSON.stringify(settings)); return true; }catch(e){ toast("Impossible d'enregistrer les réglages."); return false; } }
 const canTranslate = () => !!(settings.url && settings.pw);
 function fillSettings(){
   $("#setUrl").value=settings.url; $("#setPw").value=settings.pw;
   document.querySelectorAll("[data-accent]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.accent===settings.accent));
+  document.querySelectorAll("[data-engine]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.engine===(settings.engine||"claude")));
 }
 function readSettingsForm(){
   let url=$("#setUrl").value.trim().replace(/\/+$/,"");
   if(url && !/^https?:\/\//i.test(url)) url="https://"+url;
   const accent=(document.querySelector("[data-accent][aria-pressed=true]")||{}).dataset?.accent||"US";
-  return {url, pw:$("#setPw").value.trim(), accent};
+  const engine=(document.querySelector("[data-engine][aria-pressed=true]")||{}).dataset?.engine||"claude";
+  return {url, pw:$("#setPw").value.trim(), accent, engine};
 }
 document.querySelectorAll("[data-accent]").forEach(b=>b.addEventListener("click",()=>{
   document.querySelectorAll("[data-accent]").forEach(x=>x.setAttribute("aria-pressed",x===b));
+}));
+document.querySelectorAll("[data-engine]").forEach(b=>b.addEventListener("click",()=>{
+  document.querySelectorAll("[data-engine]").forEach(x=>x.setAttribute("aria-pressed",x===b));
 }));
 $("#settingsForm").addEventListener("submit",ev=>{
   ev.preventDefault(); settings=readSettingsForm();
@@ -496,7 +530,8 @@ $("#testBtn").addEventListener("click",async()=>{
   out.textContent="Test en cours…";
   try{
     const r = await callRelay(s,{ping:true});
-    out.textContent = r.sync ? "✓ Connexion réussie · synchro active" : "✓ Connexion réussie · synchro pas encore activée";
+    const eng = r.claude ? (r.deepl ? "Claude + DeepL en secours" : "Claude") : (r.deepl ? "DeepL seulement" : "aucune clé de traduction");
+    out.textContent = "✓ Connexion réussie · " + eng + " · " + (r.sync ? "synchro active" : "synchro pas encore activée");
   }
   catch(err){ out.textContent="✗ "+err.message; }
 });
@@ -605,13 +640,16 @@ $("#ownSwitch").addEventListener("click",()=>{
 async function fetchTranslation(){
   const fromFr = origin==="fr";
   const text = (fromFr ? $("#frInput") : $("#enInput")).value.trim();
-  const {translation}=await callRelay(settings,{
+  const r=await callRelay(settings,{
     text, source: fromFr?"FR":"EN", target: fromFr?("EN-"+settings.accent):"FR",
-    context: $("#noteInput").value.trim()
+    context: $("#noteInput").value.trim(), engine: settings.engine||"claude"
   });
-  if(!translation) throw new Error("DeepL n'a rien renvoyé.");
-  return translation;
+  if(!r.translation) throw new Error("Aucune traduction reçue.");
+  return { text:r.translation, alts:r.alternatives||[], exEn:r.exampleEn||"", exFr:r.exampleFr||"", tip:r.note||"",
+           engine:r.engine||"deepl", fallback:!!r.fallback, reason:r.reason||"" };
 }
+// Extras (example, note) of the last translation, kept so they can be saved with the word.
+let lastExtras=null; // {origin, src, text, exEn, exFr, tip}
 async function translateNow(){
   if(!canTranslate()){ toast("Configure la traduction dans l'onglet Réglages."); return false; }
   const fromFr = origin==="fr";
@@ -620,7 +658,8 @@ async function translateNow(){
   if(!text){ toast(fromFr?"Écris d'abord la phrase en français.":"Écris d'abord le mot en anglais."); src.focus(); return false; }
   const btn=$("#translateBtn"); btn.disabled=true; btn.textContent="Traduction…";
   try{
-    dst.value=await fetchTranslation(); updateLinks();
+    const r=await fetchTranslation(); dst.value=r.text; updateLinks();
+    lastExtras={origin, src:text, text:r.text, exEn:r.exEn, exFr:r.exFr, tip:r.tip};
     return true;
   }catch(err){ toast(err.message); return false; }
   finally{ btn.disabled=false; updateTranslateUI(); }
@@ -666,6 +705,7 @@ function render(){
         ? `<span class="fr">${esc(e.fr)}</span><span class="arrow">→</span><span class="en">${esc(e.en)}</span>`
         : `<span class="en">${esc(e.en)}</span><span class="arrow">→</span><span class="fr">${esc(e.fr)}</span>`}</p>
       ${e.note?`<p class="note">${esc(e.note)}</p>`:""}
+      ${e.exEn?`<p class="ex">💬 <i>${esc(e.exEn)}</i>${e.exFr?` — ${esc(e.exFr)}`:""}</p>`:""}
       <div class="meta">
         <span class="chip flags" aria-label="${e.origin==="fr"?"français vers anglais":"anglais vers français"}">${e.origin==="fr"?"🇫🇷➡️"+enFlag():enFlag()+"➡️🇫🇷"}</span>
         <button class="chip ${learned?"done":"todo"}" data-act="toggle" data-id="${e.id}">${learned?"Acquis":"À revoir"}</button>
@@ -723,20 +763,37 @@ function showResult(){
     const stale = $("#noteInput").value.trim() !== (pending.ctx||"");
     $("#resultRetry").classList.toggle("attn", stale);
     $("#resultRetry").setAttribute("aria-label", stale ? "Le contexte a changé : relancer la traduction" : "Relancer la traduction");
+    const alts = pending.alts||[];
+    $("#resultAlts").hidden = !alts.length;
+    $("#resultAlts").innerHTML = alts.length ? "Autres possibilités : "+alts.map((a,i)=>`<button type="button" data-alt="${i}">${esc(a)}</button>`).join("") : "";
+    $("#resultEx").hidden = !pending.exEn;
+    $("#resultExEn").textContent = pending.exEn ? "« "+pending.exEn+" »" : "";
+    $("#resultExFr").textContent = pending.exFr||"";
+    $("#resultTip").hidden = !pending.tip;
+    $("#resultTip").textContent = pending.tip ? "💡 "+pending.tip : "";
+    $("#resultEngine").hidden = !pending.fallback;
+    $("#resultEngine").textContent = pending.fallback ? "Traduit avec DeepL ("+(pending.reason||"Claude indisponible")+")" : "";
   }
   updateSaveLabel();
 }
 function clearPending(){ pending=null; showResult(); }
 ["#enInput","#frInput"].forEach(s=>$(s).addEventListener("input",showResult));
 $("#resultSpeak").addEventListener("click",()=>{ if(pending) speak(pending.text); });
+$("#resultExSpeak").addEventListener("click",()=>{ if(pending && pending.exEn) speak(pending.exEn); });
+// Tapping an alternative makes it the chosen translation (the previous one becomes an alternative).
+$("#resultAlts").addEventListener("click",ev=>{
+  const b=ev.target.closest("[data-alt]"); if(!b || !pending) return;
+  const i=+b.dataset.alt, alts=[...pending.alts]; const chosen=alts[i]; alts[i]=pending.text;
+  pending={...pending, text:chosen, alts}; showResult();
+});
 $("#noteInput").addEventListener("input",()=>{ if(pending) showResult(); });
 $("#resultRetry").addEventListener("click",async()=>{
   if(!pendingValid()) return;
   const btn=$("#resultRetry"), txt=$("#resultText"); btn.disabled=true; txt.style.opacity=".45";
   try{
-    const t = await fetchTranslation();
-    const changed = t !== pending.text;
-    pending = {origin, src:pending.src, text:t, ctx:$("#noteInput").value.trim()};
+    const r = await fetchTranslation();
+    const changed = r.text !== pending.text;
+    pending = {origin, src:pending.src, ctx:$("#noteInput").value.trim(), ...r};
     toast(changed ? "Traduction mise à jour" : "Même traduction avec ce contexte");
   }catch(err){ toast(err.message); }
   finally{ btn.disabled=false; txt.style.opacity=""; showResult(); }
@@ -752,8 +809,8 @@ $("#addForm").addEventListener("submit",async ev=>{
     if(!pendingValid()){
       const btn=$("#saveBtn"), text=src.value.trim(); btn.disabled=true; btn.textContent="Traduction…";
       try{
-        const t = await fetchTranslation();
-        pending = {origin, src:text, text:t, ctx:$("#noteInput").value.trim()};
+        const r = await fetchTranslation();
+        pending = {origin, src:text, ctx:$("#noteInput").value.trim(), ...r};
       }catch(err){
         toast(err.message+" Active « Ma propre traduction » pour l'écrire toi-même.");
       }finally{ btn.disabled=false; showResult(); }
@@ -762,7 +819,7 @@ $("#addForm").addEventListener("submit",async ev=>{
     // Step 2: save what is on screen.
     if(fromFr){ fr=pending.src; en=pending.text; } else { en=pending.src; fr=pending.text; }
     const dup=entries.some(x=>x.en.toLowerCase()===en.toLowerCase());
-    entries.push({id:uid(),en,fr,note,origin,status:"new",createdAt:Date.now()});
+    entries.push({id:uid(),en,fr,note,origin,status:"new",createdAt:Date.now(), exEn:pending.exEn||"", exFr:pending.exFr||"", tip:pending.tip||""});
     if(save()) toast(dup?"Ajouté (tu l'avais déjà noté)":"Ajouté au carnet");
     resetForm(); render();
     return;
@@ -783,7 +840,10 @@ $("#addForm").addEventListener("submit",async ev=>{
   if(target){ Object.assign(target,{en,fr,note,origin}); if(save()) toast("Modifié"); }
   else{
     const dup=entries.some(x=>x.en.toLowerCase()===en.toLowerCase());
-    entries.push({id:uid(),en,fr,note,origin,status:"new",createdAt:Date.now()});
+    // Own translation: keep the example only if it belongs to this same source text.
+    const src = origin==="fr" ? fr : en;
+    const ex = (lastExtras && lastExtras.origin===origin && lastExtras.src===src) ? lastExtras : {};
+    entries.push({id:uid(),en,fr,note,origin,status:"new",createdAt:Date.now(), exEn:ex.exEn||"", exFr:ex.exFr||"", tip:ex.tip||""});
     if(save()) toast(dup?"Ajouté (tu l'avais déjà noté)":"Ajouté au carnet");
   }
   resetForm(); render();
@@ -840,7 +900,7 @@ function renderCard(){
     <div class="stamp ko" aria-hidden="true">À revoir</div><div class="stamp ok" aria-hidden="true">Je savais</div>
     <div class="card3d${revealed?" flipped":""}" id="card3d" role="button" tabindex="0" aria-label="Carte : toucher pour retourner, glisser à droite si tu savais, à gauche pour revoir. Flèches gauche et droite au clavier.">
       <div class="face front"><span class="flag" role="img" aria-label="${a.label}">${a.flag}</span><div class="word">${esc(a.text)}</div></div>
-      <div class="face back" aria-hidden="${!revealed}"><span class="flag" role="img" aria-label="${b.label}">${b.flag}</span><div class="word">${esc(b.text)}</div>${e.note?`<div class="note">${esc(e.note)}</div>`:""}</div>
+      <div class="face back" aria-hidden="${!revealed}"><span class="flag" role="img" aria-label="${b.label}">${b.flag}</span><div class="word">${esc(b.text)}</div>${e.note?`<div class="note">${esc(e.note)}</div>`:""}${e.exEn?`<div class="ex">💬 <i>${esc(e.exEn)}</i>${e.exFr?`<br>${esc(e.exFr)}`:""}</div>`:""}${e.tip?`<div class="tip">💡 ${esc(e.tip)}</div>`:""}</div>
     </div>
   </div>`;
   renderButtons();
@@ -959,7 +1019,7 @@ $("#importFile").addEventListener("change",async ev=>{
     for(const e of list){
       if(!e || !e.en || !e.fr) continue;
       const k=(e.en+"|"+e.fr).toLowerCase(); if(seen.has(k)) continue; seen.add(k);
-      entries.push({id:uid(),en:String(e.en),fr:String(e.fr),note:String(e.note||""),origin:e.origin==="fr"?"fr":"en",status:e.status==="learned"?"learned":"new",createdAt:+e.createdAt||Date.now()});
+      entries.push({id:uid(),en:String(e.en),fr:String(e.fr),note:String(e.note||""),exEn:String(e.exEn||""),exFr:String(e.exFr||""),tip:String(e.tip||""),origin:e.origin==="fr"?"fr":"en",status:e.status==="learned"?"learned":"new",createdAt:+e.createdAt||Date.now()});
       added++;
     }
     save(); render(); toast(added?`${added} entrée(s) importée(s)`:"Rien de nouveau dans ce fichier");
