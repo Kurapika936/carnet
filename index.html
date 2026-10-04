@@ -87,6 +87,10 @@ form.add{background:var(--card);border:1px solid var(--line);border-radius:16px;
 .modeSeg button{width:100%;font-size:16px;padding:10px 8px;display:flex;align-items:center;justify-content:center;gap:6px}
 .modeSeg .count{font-size:12px;font-weight:700;background:var(--blue-soft);color:var(--blue);border-radius:999px;padding:0 7px;font-variant-numeric:tabular-nums}
 .modeSeg button[aria-pressed=true] .count{background:var(--card)}
+.clearable{position:relative;display:block}
+.clearable input{padding-right:46px}
+.clearBtn{position:absolute;right:8px;top:50%;transform:translateY(-50%);width:30px;height:30px;border-radius:50%;border:0;background:var(--line);color:var(--muted);font:inherit;font-size:14px;font-weight:700;line-height:1;cursor:pointer;display:grid;place-items:center;padding:0}
+.clearBtn:active{background:var(--muted);color:var(--card)}
 .switchRow{display:flex;align-items:center;gap:12px;background:none;border:0;padding:2px 0;font:inherit;font-size:15px;color:var(--ink);cursor:pointer;text-align:left;justify-self:start}
 .switchRow .track{flex:none;width:46px;height:28px;border-radius:999px;background:var(--line);position:relative;transition:background .2s}
 .switchRow .track::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:var(--card);box-shadow:0 1px 3px rgba(0,0,0,.25);transition:transform .2s}
@@ -226,10 +230,10 @@ button.chip{cursor:pointer}
       <button type="button" class="btn ghost pasteBtn" id="pasteBtn">📋 Coller et traduire</button>
       <div class="pair">
         <label for="enInput">Anglais <span class="flag">(mot ou expression)</span>
-          <input type="text" id="enInput" autocapitalize="off" spellcheck="false" lang="en">
+          <span class="clearable"><input type="text" id="enInput" autocapitalize="off" spellcheck="false" lang="en"><button type="button" class="clearBtn" data-clear aria-label="Tout effacer" hidden>✕</button></span>
         </label>
         <label for="frInput">Français
-          <input type="text" id="frInput" autocapitalize="off">
+          <span class="clearable"><input type="text" id="frInput" autocapitalize="off"><button type="button" class="clearBtn" data-clear aria-label="Tout effacer" hidden>✕</button></span>
         </label>
       </div>
       <div class="result" id="result" hidden aria-live="polite">
@@ -436,7 +440,7 @@ function setOrigin(o){
   origin=o;
   try{ localStorage.setItem("carnet-anglais-origin",o); }catch(e){}
   renderSwap();
-  const pair=$(".pair"); pair.prepend(o==="fr" ? $("#frInput").parentElement : $("#enInput").parentElement);
+  const pair=$(".pair"); pair.prepend(o==="fr" ? $("#frInput").closest("label") : $("#enInput").closest("label"));
   updateLinks();
   if(typeof updateTranslateUI==="function") updateTranslateUI();
 }
@@ -617,8 +621,8 @@ let ownMode=false; try{ ownMode=localStorage.getItem("carnet-anglais-own")==="1"
 const autoMode = () => canTranslate() && !ownMode && !editingId;
 function updateTranslateUI(){
   const fromFr = origin==="fr", auto = autoMode();
-  const targetLabel = (fromFr ? $("#enInput") : $("#frInput")).parentElement;
-  const sourceLabel = (fromFr ? $("#frInput") : $("#enInput")).parentElement;
+  const targetLabel = (fromFr ? $("#enInput") : $("#frInput")).closest("label");
+  const sourceLabel = (fromFr ? $("#frInput") : $("#enInput")).closest("label");
   sourceLabel.hidden = false; targetLabel.hidden = auto;
   $(".pair").classList.toggle("single", auto);
   $("#ownSwitch").hidden = !canTranslate() || !!editingId;
@@ -775,8 +779,20 @@ function showResult(){
     $("#resultEngine").textContent = pending.fallback ? "Traduit avec DeepL ("+(pending.reason||"Claude indisponible")+")" : "";
   }
   updateSaveLabel();
+  if(typeof updateClearBtns==="function") updateClearBtns();
 }
 function clearPending(){ pending=null; showResult(); }
+function updateClearBtns(){
+  const has = ["#enInput","#frInput","#noteInput"].some(s=>$(s).value.trim()) || !!pending;
+  document.querySelectorAll("[data-clear]").forEach(b=>{ b.hidden = !has || b.previousElementSibling!==srcInput(); });
+}
+function clearAll(){
+  $("#enInput").value=""; $("#frInput").value=""; $("#noteInput").value="";
+  pending=null; lastExtras=null; updateLinks(); showResult(); updateClearBtns();
+  srcInput().focus();
+}
+document.querySelectorAll("[data-clear]").forEach(b=>b.addEventListener("click",ev=>{ ev.preventDefault(); clearAll(); }));
+["#enInput","#frInput","#noteInput"].forEach(s=>$(s).addEventListener("input",updateClearBtns));
 ["#enInput","#frInput"].forEach(s=>$(s).addEventListener("input",showResult));
 $("#resultSpeak").addEventListener("click",()=>{ if(pending) speak(pending.text); });
 $("#resultExSpeak").addEventListener("click",()=>{ if(pending && pending.exEn) speak(pending.exEn); });
