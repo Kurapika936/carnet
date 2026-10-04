@@ -58,8 +58,8 @@ form.add{background:var(--card);border:1px solid var(--line);border-radius:16px;
 .result .icon{flex:none;font-size:20px}
 @keyframes resIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){.result{animation:none}}
-.modeSeg{display:grid;grid-template-columns:1fr 1fr;width:100%}
-.modeSeg button{font-size:16px;padding:10px 8px;display:flex;align-items:center;justify-content:center;gap:6px}
+.seg.modeSeg{display:grid;grid-template-columns:1fr 1fr;width:100%}
+.modeSeg button{width:100%;font-size:16px;padding:10px 8px;display:flex;align-items:center;justify-content:center;gap:6px}
 .modeSeg .count{font-size:12px;font-weight:700;background:var(--blue-soft);color:var(--blue);border-radius:999px;padding:0 7px;font-variant-numeric:tabular-nums}
 .modeSeg button[aria-pressed=true] .count{background:var(--card)}
 .switchRow{display:flex;align-items:center;gap:12px;background:none;border:0;padding:2px 0;font:inherit;font-size:15px;color:var(--ink);cursor:pointer;text-align:left;justify-self:start}
