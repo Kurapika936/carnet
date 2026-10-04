@@ -58,6 +58,10 @@ form.add{background:var(--card);border:1px solid var(--line);border-radius:16px;
 .result .icon{flex:none;font-size:20px}
 @keyframes resIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){.result{animation:none}}
+.modeSeg{display:grid;grid-template-columns:1fr 1fr;width:100%}
+.modeSeg button{font-size:16px;padding:10px 8px;display:flex;align-items:center;justify-content:center;gap:6px}
+.modeSeg .count{font-size:12px;font-weight:700;background:var(--blue-soft);color:var(--blue);border-radius:999px;padding:0 7px;font-variant-numeric:tabular-nums}
+.modeSeg button[aria-pressed=true] .count{background:var(--card)}
 .switchRow{display:flex;align-items:center;gap:12px;background:none;border:0;padding:2px 0;font:inherit;font-size:15px;color:var(--ink);cursor:pointer;text-align:left;justify-self:start}
 .switchRow .track{flex:none;width:46px;height:28px;border-radius:999px;background:var(--line);position:relative;transition:background .2s}
 .switchRow .track::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:var(--card);box-shadow:0 1px 3px rgba(0,0,0,.25);transition:transform .2s}
@@ -159,7 +163,7 @@ button.chip{cursor:pointer}
   <p class="notice" id="notice" hidden></p>
 
   <div class="tabs" role="tablist">
-    <button role="tab" data-tab="list" aria-selected="true"><span class="emo" aria-hidden="true">📒</span>Carnet <span class="count" id="countAll">0</span></button>
+    <button role="tab" data-tab="list" aria-selected="true"><span class="emo" aria-hidden="true">🌐</span>Traduire</button>
     <button role="tab" data-tab="review" aria-selected="false"><span class="emo" aria-hidden="true">🧠</span>Réviser <span class="count" id="countTodo">0</span></button>
     <button role="tab" data-tab="backup" aria-selected="false"><span class="emo" aria-hidden="true">⚙️</span>Réglages</button>
   </div>
@@ -200,28 +204,35 @@ button.chip{cursor:pointer}
       </div>
     </form>
 
-    <div class="tools">
-      <input type="search" id="search" placeholder="Rechercher" aria-label="Rechercher">
-      <div class="seg" role="group" aria-label="Filtre">
-        <button type="button" data-filter="all" aria-pressed="true">Tout</button>
-        <button type="button" data-filter="todo" aria-pressed="false">À revoir</button>
-        <button type="button" data-filter="done" aria-pressed="false">Acquis</button>
-      </div>
-    </div>
-    <ul class="list" id="list"></ul>
-    <div class="empty" id="empty">
-      <div><strong>Ton carnet est vide.</strong> Ajoute ton premier mot avec le formulaire. Il ressemblera à ceci :</div>
-      <div class="entry" aria-hidden="true">
-        <div class="terms"><span class="en">to get the hang of it</span><span class="arrow">→</span><span class="fr">prendre le coup de main</span></div>
-        <div></div>
-        <p class="note">It took me a week to get the hang of it.</p>
-        <div class="meta"><span class="chip">Exemple</span><span class="chip todo">À revoir</span></div>
-      </div>
-    </div>
   </section>
 
   <!-- RÉVISER -->
   <section class="view" id="view-review" hidden>
+    <div class="seg modeSeg" role="group" aria-label="Mode de révision">
+      <button type="button" data-mode="list" aria-pressed="true">📋 Liste <span class="count" id="countAll">0</span></button>
+      <button type="button" data-mode="cards" aria-pressed="false">🃏 Flashcards</button>
+    </div>
+    <div class="view" id="revList">
+    <div class="tools">
+        <input type="search" id="search" placeholder="Rechercher" aria-label="Rechercher">
+        <div class="seg" role="group" aria-label="Filtre">
+          <button type="button" data-filter="all" aria-pressed="true">Tout</button>
+          <button type="button" data-filter="todo" aria-pressed="false">À revoir</button>
+          <button type="button" data-filter="done" aria-pressed="false">Acquis</button>
+        </div>
+      </div>
+      <ul class="list" id="list"></ul>
+      <div class="empty" id="empty">
+        <div><strong>Ton carnet est vide.</strong> Traduis un mot dans l'onglet 🌐 Traduire, puis touche « Ajouter au carnet ». Il apparaîtra ici, comme ceci :</div>
+        <div class="entry" aria-hidden="true">
+          <div class="terms"><span class="en">to get the hang of it</span><span class="arrow">→</span><span class="fr">prendre le coup de main</span></div>
+          <div></div>
+          <p class="note">It took me a week to get the hang of it.</p>
+          <div class="meta"><span class="chip">Exemple</span><span class="chip todo">À revoir</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="view" id="revCards" hidden>
     <div class="row">
       <div class="seg" role="group" aria-label="Direction">
         <button type="button" data-dir="en" aria-pressed="true">EN → FR</button>
@@ -233,6 +244,7 @@ button.chip{cursor:pointer}
     <div class="flash" id="flash"></div>
     <div class="row" id="flashBtns"></div>
     <div class="progress" id="progress"></div>
+    </div>
   </section>
 
   <!-- SAUVEGARDE -->
@@ -523,14 +535,14 @@ $("#list").addEventListener("click",ev=>{
       editingId=e.id; setOrigin(e.origin||"en");
       $("#enInput").value=e.en; $("#frInput").value=e.fr; $("#noteInput").value=e.note||"";
       $("#saveBtn").textContent="Enregistrer"; $("#cancelEdit").hidden=false; updateLinks(); updateTranslateUI();
-      $("#addForm").scrollIntoView({behavior:"smooth",block:"start"}); break;
+      showTab("list"); $("#addForm").scrollIntoView({block:"start"}); break;
     case "del": confirmId=e.id; render(); break;
     case "del-no": confirmId=null; render(); break;
     case "del-yes": entries=entries.filter(x=>x.id!==b.dataset.id); confirmId=null; save(); render(); toast("Supprimé"); break;
     case "toggle": e.status = e.status==="learned"?"new":"learned"; save(); render(); break;
   }
 });
-$("#cancelEdit").addEventListener("click",resetForm);
+$("#cancelEdit").addEventListener("click",()=>{ resetForm(); showTab("review"); });
 $("#search").addEventListener("input",render);
 document.querySelectorAll("[data-filter]").forEach(b=>b.addEventListener("click",()=>{
   filter=b.dataset.filter; document.querySelectorAll("[data-filter]").forEach(x=>x.setAttribute("aria-pressed",x===b)); render();
@@ -594,6 +606,7 @@ $("#addForm").addEventListener("submit",async ev=>{
     }
     toast("Remplis l'anglais et le français."); (en?$("#frInput"):$("#enInput")).focus(); return;
   }
+  const wasEditing = !!editingId;
   if(editingId){ Object.assign(entries.find(x=>x.id===editingId),{en,fr,note,origin}); if(save()) toast("Modifié"); }
   else{
     const dup=entries.some(x=>x.en.toLowerCase()===en.toLowerCase());
@@ -601,17 +614,31 @@ $("#addForm").addEventListener("submit",async ev=>{
     if(save()) toast(dup?"Ajouté (tu l'avais déjà noté)":"Ajouté au carnet");
   }
   resetForm(); render();
+  if(wasEditing) showTab("review");
 });
 
 // ---------- Tabs ----------
-document.querySelectorAll("[data-tab]").forEach(b=>b.addEventListener("click",()=>{
-  const t=b.dataset.tab;
-  document.querySelectorAll("[data-tab]").forEach(x=>x.setAttribute("aria-selected",x===b));
+function showTab(t){
+  document.querySelectorAll("[data-tab]").forEach(x=>x.setAttribute("aria-selected",x.dataset.tab===t));
   ["list","review","backup"].forEach(v=>$("#view-"+v).hidden = v!==t);
-  if(t==="review") startDeck();
+  if(t==="review" && revMode==="cards") startDeck();
   if(t==="backup"){ showLastBackup(); fillSettings(); $("#testResult").textContent=""; }
   window.scrollTo(0,0);
+}
+document.querySelectorAll("[data-tab]").forEach(b=>b.addEventListener("click",()=>{
+  if(b.dataset.tab!=="list" && editingId){ resetForm(); }   // leaving an edit abandons it
+  showTab(b.dataset.tab);
 }));
+
+// Review has two modes: the word list, or flashcards.
+let revMode="list"; try{ revMode=localStorage.getItem("carnet-anglais-revmode")==="cards"?"cards":"list"; }catch(e){}
+function setRevMode(m){
+  revMode=m; try{ localStorage.setItem("carnet-anglais-revmode",m); }catch(e){}
+  document.querySelectorAll("[data-mode]").forEach(x=>x.setAttribute("aria-pressed",x.dataset.mode===m));
+  $("#revList").hidden = m!=="list"; $("#revCards").hidden = m!=="cards";
+  if(m==="cards") startDeck();
+}
+document.querySelectorAll("[data-mode]").forEach(b=>b.addEventListener("click",()=>setRevMode(b.dataset.mode)));
 
 // ---------- Review ----------
 function startDeck(){
@@ -725,7 +752,7 @@ if("serviceWorker" in navigator){
 
 let savedOrigin="en"; try{ savedOrigin=localStorage.getItem("carnet-anglais-origin")||"en"; }catch(e){}
 setOrigin(savedOrigin==="fr"?"fr":"en");
-updateTranslateUI(); render(); renderCard();
+updateTranslateUI(); render(); setRevMode(revMode);
 </script>
 </body>
 </html>
