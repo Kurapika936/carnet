@@ -131,7 +131,7 @@ button.chip{cursor:pointer}
 /* Flashcard: two faces stacked in one grid cell, rotated in 3D */
 .flash{perspective:1200px;user-select:none;-webkit-user-select:none}
 #revCards{overflow-x:clip}
-.swiper{position:relative;touch-action:pan-y;transition:transform .26s ease-out;will-change:transform}
+.swiper{position:relative;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;transition:transform .26s ease-out;will-change:transform}
 .swiper.dragging{transition:none}
 .swiper.leaving{transition:transform .26s ease-in}
 .stamp{position:absolute;top:18px;z-index:5;pointer-events:none;opacity:0;font-family:var(--f-display);font-weight:800;font-size:20px;letter-spacing:.04em;text-transform:uppercase;padding:4px 12px;border:3px solid currentColor;border-radius:10px;background:var(--card)}
@@ -719,8 +719,9 @@ $("#flash").addEventListener("pointermove",ev=>{
   if(!drag || ev.pointerId!==drag.id) return;
   drag.dx=ev.clientX-drag.x; drag.dy=ev.clientY-drag.y;
   if(!drag.active){
-    if(Math.abs(drag.dx)>10 && Math.abs(drag.dx)>Math.abs(drag.dy)){ drag.active=true; drag.sw.classList.add("dragging"); try{ drag.sw.setPointerCapture(drag.id); }catch(e){} }
-    else if(Math.abs(drag.dy)>10){ drag=null; return; } // vertical: let the page scroll
+    // The card owns every gesture that starts on it (the page never scrolls from here),
+    // so a slightly diagonal swipe still counts.
+    if(Math.abs(drag.dx)>8){ drag.active=true; drag.sw.classList.add("dragging"); try{ drag.sw.setPointerCapture(drag.id); }catch(e){} }
     else return;
   }
   const w=drag.sw.offsetWidth||300;
@@ -737,6 +738,8 @@ function endDrag(ev, cancelled){
   else { d.sw.style.transform=""; setStamps(0); }
 }
 $("#flash").addEventListener("pointerup",ev=>endDrag(ev,false));
+// iOS Safari can still start a page scroll from a touch: block it when the touch begins on the card.
+$("#flash").addEventListener("touchmove",ev=>{ if(ev.target.closest("#swiper")) ev.preventDefault(); },{passive:false});
 $("#flash").addEventListener("pointercancel",ev=>endDrag(ev,true));
 $("#flash").addEventListener("keydown",ev=>{
   if(ev.target.id!=="card3d") return;
