@@ -34,7 +34,7 @@
   --blue:#8ea6ff; --blue-soft:#232d55; --hl:#e8c93c; --hl-ink:#2a2200; --ok:#6fd3a0; --ok-soft:#173a2a; --danger:#ff8a80; color-scheme:dark}
 body{transition:background-color .25s,color .25s}
 @media (prefers-reduced-motion:reduce){body{transition:none}}
-header{display:flex;gap:12px;align-items:flex-start;justify-content:space-between}
+header{display:flex;gap:12px;align-items:center;justify-content:space-between}
 header > div{min-width:0}
 .themeBtn{flex:none;width:46px;height:46px;border-radius:50%;border:1px solid var(--line);background:var(--card);font-size:22px;line-height:1;cursor:pointer;display:grid;place-items:center;padding:0}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -176,7 +176,6 @@ button.chip{cursor:pointer}
   <header>
     <div>
       <h1>Word <span class="en">Up</span></h1>
-      <p class="sub">Note chaque mot ou expression rencontré en anglais, ou chaque phrase que tu voulais dire. Puis révise-les pour qu'ils restent.</p>
     </div>
     <button class="themeBtn" id="themeBtn" type="button" aria-label="Changer de mode"></button>
   </header>
