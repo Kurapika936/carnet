@@ -130,6 +130,15 @@ button.chip{cursor:pointer}
 
 /* Flashcard: two faces stacked in one grid cell, rotated in 3D */
 .flash{perspective:1200px;user-select:none;-webkit-user-select:none}
+#revCards{overflow-x:clip}
+.swiper{position:relative;touch-action:pan-y;transition:transform .26s ease-out;will-change:transform}
+.swiper.dragging{transition:none}
+.swiper.leaving{transition:transform .26s ease-in}
+.stamp{position:absolute;top:18px;z-index:5;pointer-events:none;opacity:0;font-family:var(--f-display);font-weight:800;font-size:20px;letter-spacing:.04em;text-transform:uppercase;padding:4px 12px;border:3px solid currentColor;border-radius:10px;background:var(--card)}
+.stamp.ok{right:16px;color:var(--ok);transform:rotate(10deg)}
+.stamp.ko{left:16px;color:#c98a00;transform:rotate(-10deg)}
+:root[data-theme="dark"] .stamp.ko{color:var(--hl)}
+@media (prefers-reduced-motion:reduce){.swiper,.swiper.leaving{transition:none}}
 .card3d{display:grid;transform-style:preserve-3d;-webkit-transform-style:preserve-3d;transition:transform .55s cubic-bezier(.3,.7,.3,1);cursor:pointer}
 .card3d.flipped{transform:rotateY(180deg)}
 .face{grid-area:1/1;position:relative;background:var(--card);border:1px solid var(--line);border-radius:18px;min-height:250px;padding:40px 20px 28px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:12px;backface-visibility:hidden;-webkit-backface-visibility:hidden}
@@ -649,25 +658,26 @@ function startDeck(){
 }
 const enFlag = () => settings.accent==="GB" ? "🇬🇧" : "🇺🇸";
 function renderButtons(){
-  $("#flashBtns").innerHTML = revealed
-    ? `<button class="btn ghost" data-r="speak" aria-label="Écouter">🔊</button><span class="spacer"></span><button class="btn ghost" data-r="again">À revoir</button><button class="btn" data-r="know" style="background:var(--ok)">Je savais</button>`
-    : `<button class="btn ghost" data-r="speak" aria-label="Écouter">🔊</button><span class="spacer"></span><button class="btn" data-r="flip">Retourner</button>`;
+  $("#flashBtns").innerHTML = `<span class="spacer"></span><button class="btn ghost" data-r="speak" aria-label="Écouter la prononciation">🔊 Écouter</button><span class="spacer"></span>`;
 }
 function renderCard(){
   const flash=$("#flash"), btns=$("#flashBtns"), prog=$("#progress");
   const plain = html => `<div class="card3d"><div class="face">${html}</div></div>`;
-  if(!entries.length){ flash.innerHTML=plain(`<div class="side">Rien à réviser</div><div>Ajoute des mots dans ton carnet, puis reviens ici.</div>`); btns.innerHTML=""; prog.textContent=""; return; }
+  if(!entries.length){ flash.innerHTML=plain(`<div class="side">Rien à réviser</div><div>Traduis des mots dans l'onglet 🌐 Traduire et ajoute-les au carnet.</div>`); btns.innerHTML=""; prog.textContent=""; return; }
   if(pos>=deck.length){
     flash.innerHTML = plain(deck.length ? `<div class="side">Bravo</div><div class="word">Série terminée</div>` : `<div class="side">Tout est acquis</div><div class="note">Coche « Inclure les acquis » pour les revoir.</div>`);
-    btns.innerHTML=`<button class="btn" data-r="restart">Nouvelle série</button>`; prog.textContent=""; return;
+    btns.innerHTML=`<span class="spacer"></span><button class="btn" data-r="restart">Nouvelle série</button><span class="spacer"></span>`; prog.textContent=""; return;
   }
   const e=entries.find(x=>x.id===deck[pos]); if(!e){ pos++; return renderCard(); }
   const enSide = {flag:enFlag(), text:e.en, label:"Anglais"}, frSide = {flag:"🇫🇷", text:e.fr, label:"Français"};
   const [a,b] = dir==="en" ? [enSide,frSide] : [frSide,enSide];
   // Rebuilt fresh for each card, so a new card always appears front-side up with no animation.
-  flash.innerHTML = `<div class="card3d${revealed?" flipped":""}" id="card3d" role="button" tabindex="0" aria-label="Retourner la carte">
-    <div class="face front"><span class="flag" role="img" aria-label="${a.label}">${a.flag}</span><div class="word">${esc(a.text)}</div></div>
-    <div class="face back" aria-hidden="${!revealed}"><span class="flag" role="img" aria-label="${b.label}">${b.flag}</span><div class="word">${esc(b.text)}</div>${e.note?`<div class="note">${esc(e.note)}</div>`:""}</div>
+  flash.innerHTML = `<div class="swiper" id="swiper">
+    <div class="stamp ko" aria-hidden="true">À revoir</div><div class="stamp ok" aria-hidden="true">Je savais</div>
+    <div class="card3d${revealed?" flipped":""}" id="card3d" role="button" tabindex="0" aria-label="Carte : toucher pour retourner, glisser à droite si tu savais, à gauche pour revoir. Flèches gauche et droite au clavier.">
+      <div class="face front"><span class="flag" role="img" aria-label="${a.label}">${a.flag}</span><div class="word">${esc(a.text)}</div></div>
+      <div class="face back" aria-hidden="${!revealed}"><span class="flag" role="img" aria-label="${b.label}">${b.flag}</span><div class="word">${esc(b.text)}</div>${e.note?`<div class="note">${esc(e.note)}</div>`:""}</div>
+    </div>
   </div>`;
   renderButtons();
   prog.textContent=`Carte ${pos+1} sur ${deck.length}`;
@@ -677,18 +687,68 @@ function flipCard(){
   revealed=!revealed;
   c.classList.toggle("flipped",revealed);
   c.querySelector(".face.back").setAttribute("aria-hidden",String(!revealed));
-  renderButtons();
 }
-$("#flash").addEventListener("click",ev=>{ if(ev.target.closest("#card3d")) flipCard(); });
-$("#flash").addEventListener("keydown",ev=>{ if((ev.key===" "||ev.key==="Enter") && ev.target.id==="card3d"){ ev.preventDefault(); flipCard(); } });
+// Record the answer for the current card and move on.
+function answer(knew){
+  const e=entries.find(x=>x.id===deck[pos]);
+  if(e){ e.status = knew ? "learned" : "new"; save(); render(); }
+  pos++; revealed=false; renderCard();
+}
+// Fly the card off-screen in the swipe direction, then answer.
+function flyOut(knew){
+  const sw=$("#swiper"); if(!sw || sw.dataset.gone) return;
+  sw.dataset.gone="1";
+  if(matchMedia("(prefers-reduced-motion: reduce)").matches){ answer(knew); return; }
+  sw.classList.remove("dragging"); sw.classList.add("leaving");
+  sw.style.transform=`translateX(${(knew?1:-1)*(window.innerWidth+120)}px) rotate(${knew?24:-24}deg)`;
+  setStamps(knew?1:-1);
+  setTimeout(()=>answer(knew), 260);
+}
+function setStamps(r){ // r in [-1,1]: negative = left (à revoir), positive = right (je savais)
+  const sw=$("#swiper"); if(!sw) return;
+  sw.querySelector(".stamp.ok").style.opacity = Math.max(0, r);
+  sw.querySelector(".stamp.ko").style.opacity = Math.max(0, -r);
+}
+// Pointer handling: a tap flips, a horizontal drag swipes. Vertical moves scroll the page.
+let drag=null;
+$("#flash").addEventListener("pointerdown",ev=>{
+  const sw=ev.target.closest("#swiper"); if(!sw || sw.dataset.gone) return;
+  drag={id:ev.pointerId, x:ev.clientX, y:ev.clientY, dx:0, dy:0, active:false, sw};
+});
+$("#flash").addEventListener("pointermove",ev=>{
+  if(!drag || ev.pointerId!==drag.id) return;
+  drag.dx=ev.clientX-drag.x; drag.dy=ev.clientY-drag.y;
+  if(!drag.active){
+    if(Math.abs(drag.dx)>10 && Math.abs(drag.dx)>Math.abs(drag.dy)){ drag.active=true; drag.sw.classList.add("dragging"); try{ drag.sw.setPointerCapture(drag.id); }catch(e){} }
+    else if(Math.abs(drag.dy)>10){ drag=null; return; } // vertical: let the page scroll
+    else return;
+  }
+  const w=drag.sw.offsetWidth||300;
+  drag.sw.style.transform=`translateX(${drag.dx}px) rotate(${drag.dx/w*14}deg)`;
+  setStamps(Math.max(-1,Math.min(1,drag.dx/(w*0.35))));
+});
+function endDrag(ev, cancelled){
+  if(!drag || ev.pointerId!==drag.id) return;
+  const d=drag; drag=null;
+  if(!d.active){ if(!cancelled && Math.abs(d.dx)<10 && Math.abs(d.dy)<10) flipCard(); return; }
+  d.sw.classList.remove("dragging");
+  const w=d.sw.offsetWidth||300;
+  if(!cancelled && Math.abs(d.dx) > w*0.28) flyOut(d.dx>0);
+  else { d.sw.style.transform=""; setStamps(0); }
+}
+$("#flash").addEventListener("pointerup",ev=>endDrag(ev,false));
+$("#flash").addEventListener("pointercancel",ev=>endDrag(ev,true));
+$("#flash").addEventListener("keydown",ev=>{
+  if(ev.target.id!=="card3d") return;
+  if(ev.key===" "||ev.key==="Enter"){ ev.preventDefault(); flipCard(); }
+  else if(ev.key==="ArrowRight"){ ev.preventDefault(); flyOut(true); }
+  else if(ev.key==="ArrowLeft"){ ev.preventDefault(); flyOut(false); }
+});
 $("#flashBtns").addEventListener("click",ev=>{
   const b=ev.target.closest("[data-r]"); if(!b) return;
   const e=entries.find(x=>x.id===deck[pos]);
   if(b.dataset.r==="restart") return startDeck();
-  if(b.dataset.r==="flip") return flipCard();
   if(b.dataset.r==="speak"){ if(e) speak(e.en); return; }
-  if(e){ e.status = b.dataset.r==="know" ? "learned" : "new"; save(); render(); }
-  pos++; revealed=false; renderCard();
 });
 document.querySelectorAll("[data-dir]").forEach(b=>b.addEventListener("click",()=>{
   dir=b.dataset.dir; document.querySelectorAll("[data-dir]").forEach(x=>x.setAttribute("aria-pressed",x===b)); revealed=false; renderCard();
