@@ -1,6 +1,6 @@
 // Garde l'app disponible hors ligne. Change VERSION à chaque mise à jour des fichiers.
-const VERSION = "carnet-v18";
-const FILES = ["./", "index.html", "manifest.webmanifest", "apple-touch-icon.png", "icon-192.png", "icon-512.png"];
+const VERSION = "carnet-v19";
+const FILES = ["./", "index.html", "manifest.webmanifest", "wordup-180.png", "wordup-192.png", "wordup-512.png"];
 
 self.addEventListener("install", e => {
   // cache:"reload" ignore le cache HTTP du navigateur (GitHub Pages garde les fichiers 10 min).
