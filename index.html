@@ -59,6 +59,8 @@ form.add{background:var(--card);border:1px solid var(--line);border-radius:16px;
 @keyframes resIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){.result{animation:none}}
 .seg.modeSeg{display:grid;grid-template-columns:1fr 1fr;width:100%}
+.seg.fullSeg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;width:100%}
+.seg.fullSeg button{width:100%;padding:9px 6px}
 .seg.filterSeg{display:grid;grid-template-columns:repeat(3,1fr);width:100%;flex:1 1 100%}
 .seg.filterSeg button{width:100%;padding:9px 6px}
 .modeSeg button{width:100%;font-size:16px;padding:10px 8px;display:flex;align-items:center;justify-content:center;gap:6px}
@@ -244,12 +246,11 @@ button.chip{cursor:pointer}
       </div>
     </div>
     <div class="view" id="revCards" hidden>
+    <div class="seg fullSeg" role="group" aria-label="Sens des cartes">
+      <button type="button" data-dir="en" aria-pressed="true">Anglais → Français</button>
+      <button type="button" data-dir="fr" aria-pressed="false">Français → Anglais</button>
+    </div>
     <div class="row">
-      <div class="seg" role="group" aria-label="Direction">
-        <button type="button" data-dir="en" aria-pressed="true">EN → FR</button>
-        <button type="button" data-dir="fr" aria-pressed="false">FR → EN</button>
-      </div>
-      <span class="spacer"></span>
       <label for="incDone" style="flex-direction:row;align-items:center;text-transform:none;letter-spacing:0;font-weight:400;font-size:14px;gap:6px"><input type="checkbox" id="incDone"> Inclure les acquis</label>
     </div>
     <div class="flash" id="flash"></div>
@@ -262,7 +263,7 @@ button.chip{cursor:pointer}
   <section class="view" id="view-backup" hidden>
     <div class="backup">
       <h2>Apparence</h2>
-      <div class="seg" role="group" aria-label="Apparence">
+      <div class="seg fullSeg" role="group" aria-label="Apparence">
         <button type="button" data-theme-opt="light" aria-pressed="false">☀️ Jour</button>
         <button type="button" data-theme-opt="dark" aria-pressed="false">🌙 Nuit</button>
         <button type="button" data-theme-opt="auto" aria-pressed="false">📱 Auto</button>
@@ -278,9 +279,9 @@ button.chip{cursor:pointer}
       <label for="setPw">Mot de passe
         <input type="text" id="setPw" autocapitalize="off" spellcheck="false" placeholder="le même que dans Cloudflare">
       </label>
-      <div class="seg" role="group" aria-label="Accent">
-        <button type="button" data-accent="US" aria-pressed="true">Anglais américain</button>
-        <button type="button" data-accent="GB" aria-pressed="false">Anglais britannique</button>
+      <div class="seg fullSeg" role="group" aria-label="Accent">
+        <button type="button" data-accent="US" aria-pressed="true">🇺🇸 Américain</button>
+        <button type="button" data-accent="GB" aria-pressed="false">🇬🇧 Britannique</button>
       </div>
       <p style="font-size:14px">L'accent choisi sert pour les traductions et pour la prononciation 🔊.</p>
       <div class="row">
