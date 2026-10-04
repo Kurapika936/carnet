@@ -518,7 +518,9 @@ function render(){
     const learned=e.status==="learned";
     const confirm = confirmId===e.id ? `<div class="confirm">Supprimer « ${esc(e.en)} » ? <button class="btn" data-act="del-yes" data-id="${e.id}" style="background:var(--danger)">Supprimer</button><button class="btn ghost" data-act="del-no">Annuler</button></div>` : "";
     return `<li class="entry">
-      <p class="terms"><span class="en">${esc(e.en)}</span><span class="arrow">→</span><span class="fr">${esc(e.fr)}</span></p>
+      <p class="terms">${e.origin==="fr"
+        ? `<span class="fr">${esc(e.fr)}</span><span class="arrow">→</span><span class="en">${esc(e.en)}</span>`
+        : `<span class="en">${esc(e.en)}</span><span class="arrow">→</span><span class="fr">${esc(e.fr)}</span>`}</p>
       ${e.note?`<p class="note">${esc(e.note)}</p>`:""}
       <div class="meta">
         <span class="chip flags" aria-label="${e.origin==="fr"?"français vers anglais":"anglais vers français"}">${e.origin==="fr"?"🇫🇷➡️"+enFlag():enFlag()+"➡️🇫🇷"}</span>

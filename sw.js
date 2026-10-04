@@ -1,5 +1,5 @@
 // Garde l'app disponible hors ligne. Change VERSION à chaque mise à jour des fichiers.
-const VERSION = "carnet-v20";
+const VERSION = "carnet-v21";
 const FILES = ["./", "index.html", "manifest.webmanifest", "wordup-180.png", "wordup-192.png", "wordup-512.png"];
 
 self.addEventListener("install", e => {
