@@ -89,6 +89,7 @@ input:focus-visible,textarea:focus-visible,button:focus-visible,a:focus-visible{
 .seg{display:inline-flex;flex-wrap:wrap;border:1px solid var(--line);border-radius:999px;padding:3px;gap:2px;background:var(--paper)}
 .seg button{border:0;background:transparent;color:var(--muted);font:inherit;font-size:14px;padding:7px 12px;border-radius:999px;cursor:pointer}
 .seg button[aria-pressed=true]{background:var(--blue);color:var(--card);font-weight:700}
+.pasteBtn{width:100%;display:flex;align-items:center;justify-content:center;gap:8px}
 .swap{justify-self:center;display:inline-flex;align-items:center;gap:10px;border:1px solid var(--line);background:var(--paper);border-radius:999px;padding:8px 18px;cursor:pointer;font:inherit;line-height:1}
 .swap .fl{font-size:28px}
 .swap .arr{font-size:20px;display:inline-block}
@@ -194,6 +195,7 @@ button.chip{cursor:pointer}
       <button type="button" class="swap" id="swapBtn" aria-label="Inverser le sens de traduction">
         <span class="fl" id="swapFrom">🇬🇧</span><span class="arr" aria-hidden="true">➡️</span><span class="fl" id="swapTo">🇫🇷</span>
       </button>
+      <button type="button" class="btn ghost pasteBtn" id="pasteBtn">📋 Coller et traduire</button>
       <div class="pair">
         <label for="enInput">Anglais <span class="flag">(mot ou expression)</span>
           <input type="text" id="enInput" autocapitalize="off" spellcheck="false" lang="en">
@@ -372,9 +374,40 @@ function setOrigin(o){
   updateLinks();
   if(typeof updateTranslateUI==="function") updateTranslateUI();
 }
+// Guess whether a pasted text is French or English (simple word/accent scoring; ties → English).
+function guessLang(text){
+  const t=" "+text.toLowerCase().replace(/[’']/g,"' ")+" ";
+  let fr=(t.match(/[àâçéèêëîïôûùüÿœæ]/g)||[]).length*2, en=0;
+  const FR=["le","la","les","de","des","du","un","une","et","est","je","tu","il","elle","nous","vous","ils","pas","que","qui","pour","avec","dans","sur","ce","cette","mon","ma","mes","ton","ta","son","sa","c'","j'","l'","d'","qu'","n'","au","aux","ou","mais","très","bien","être","avoir","fait","comme","plus"];
+  const EN=["the","a","an","and","is","are","was","were","to","of","in","on","for","with","you","i","it","this","that","be","have","has","do","does","not","my","your","what","how","why","will","would","can","could","just","about","from","they","we","he","she","at","by","or","but","if","so"];
+  for(const w of t.split(/[^a-zàâçéèêëîïôûùüÿœæ']+/).filter(Boolean)){
+    if(FR.includes(w)) fr+=2; if(EN.includes(w)) en+=2;
+  }
+  return fr>en ? "fr" : "en";
+}
+$("#pasteBtn").addEventListener("click",async()=>{
+  let text="";
+  try{ text = await navigator.clipboard.readText(); }
+  catch(e){ toast("Impossible de lire le presse-papiers : fais un appui long dans le champ, puis Coller."); srcInput().focus(); return; }
+  text=(text||"").replace(/\s+/g," ").trim();
+  if(!text){ toast("Le presse-papiers est vide. Copie d'abord un mot ou une phrase."); return; }
+  if(text.length>1000) text=text.slice(0,1000);
+  if(editingId) resetForm();
+  setOrigin(guessLang(text));
+  $("#frInput").value=""; $("#enInput").value=""; $("#noteInput").value=""; pending=null;
+  srcInput().value=text; updateLinks(); showResult();
+  if(canTranslate()){
+    const f=$("#addForm");
+    if(f.requestSubmit) f.requestSubmit(); else f.dispatchEvent(new Event("submit",{cancelable:true}));
+  }
+});
 $("#swapBtn").addEventListener("click",()=>{
   const btn=$("#swapBtn"); btn.classList.remove("spin"); void btn.offsetWidth; btn.classList.add("spin");
+  // In automatic mode, carry the typed text over to the new source field
+  // (handy when a pasted word was detected in the wrong language).
+  const oldSrc=srcInput(), text=oldSrc.value;
   setOrigin(origin==="fr"?"en":"fr");
+  if(autoMode() && text.trim() && !srcInput().value.trim()){ srcInput().value=text; oldSrc.value=""; updateLinks(); showResult(); }
 });
 ["#enInput","#frInput"].forEach(s=>$(s).addEventListener("input",updateLinks));
 
