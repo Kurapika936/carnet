@@ -529,11 +529,9 @@ function guessLang(text){
   }
   return fr>en ? "fr" : "en";
 }
-$("#pasteBtn").addEventListener("click",async()=>{
-  let text="";
-  try{ text = await navigator.clipboard.readText(); }
-  catch(e){ toast("Impossible de lire le presse-papiers : fais un appui long dans le champ, puis Coller."); srcInput().focus(); return; }
-  text=(text||"").replace(/\s+/g," ").trim();
+// Put a pasted/copied text in the right field (language guessed) and translate it straight away.
+function pasteAndTranslate(raw){
+  let text=(raw||"").replace(/\s+/g," ").trim();
   if(!text){ toast("Le presse-papiers est vide. Copie d'abord un mot ou une phrase."); return; }
   if(text.length>1000) text=text.slice(0,1000);
   if(editingId) resetForm();
@@ -544,7 +542,23 @@ $("#pasteBtn").addEventListener("click",async()=>{
     const f=$("#addForm");
     if(f.requestSubmit) f.requestSubmit(); else f.dispatchEvent(new Event("submit",{cancelable:true}));
   }
+}
+$("#pasteBtn").addEventListener("click",async()=>{
+  let text="";
+  try{ text = await navigator.clipboard.readText(); }
+  catch(e){ toast("Impossible de lire le presse-papiers : fais un appui long dans le champ, puis Coller."); srcInput().focus(); return; }
+  pasteAndTranslate(text);
 });
+// Pasting into an empty field (long press → Coller) translates right away, with no extra prompt.
+["#enInput","#frInput"].forEach(sel=>$(sel).addEventListener("paste",ev=>{
+  const field=$(sel);
+  if(field.value.trim() || editingId || !autoMode()) return; // keep normal pasting when typing or editing
+  const text=(ev.clipboardData||window.clipboardData)?.getData("text") || "";
+  if(!text.trim()) return;
+  ev.preventDefault();
+  pasteAndTranslate(text);
+}));
+
 $("#swapBtn").addEventListener("click",()=>{
   const btn=$("#swapBtn"); btn.classList.remove("spin"); void btn.offsetWidth; btn.classList.add("spin");
   // In automatic mode, carry the typed text over to the new source field

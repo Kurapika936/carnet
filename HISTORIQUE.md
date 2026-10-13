@@ -30,5 +30,6 @@ Pour revenir à une version : écrire à Claude **« Rollback N »** (ex. « Rol
 | v29 | 5 oct. | Traduction par Claude : exemple, note d'usage, variantes ; DeepL en secours |
 | v30 | 5 oct. | Bouton ✕ pour tout effacer dans le champ |
 | v31 | 13 oct. | Dossiers : choix au moment d'ajouter, suggestion par Claude, filtre en Liste et Flashcards, gestion dans les Réglages, synchronisés |
+| v32 | 13 oct. | Coller dans le champ vide (appui long → Coller) traduit directement, sans la fenêtre « Allow Paste » |
 
 (Les numéros manquants, comme v23 et v27, étaient des étapes intermédiaires jamais publiées.)
