@@ -91,6 +91,33 @@ form.add{background:var(--card);border:1px solid var(--line);border-radius:16px;
 .clearable input{padding-right:46px}
 .clearBtn{position:absolute;right:8px;top:50%;transform:translateY(-50%);width:30px;height:30px;border-radius:50%;border:0;background:var(--line);color:var(--muted);font:inherit;font-size:14px;font-weight:700;line-height:1;cursor:pointer;display:grid;place-items:center;padding:0}
 .clearBtn:active{background:var(--muted);color:var(--card)}
+.folderRow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.folderLabel{flex-direction:row;font-size:14px;text-transform:none;letter-spacing:0;color:var(--ink);font-weight:600}
+#folderSel{font:inherit;font-size:16px;color:var(--ink);background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:8px 10px;flex:1 1 180px;min-width:0;max-width:100%}
+.folderHint{font-size:13px;color:var(--blue)}
+.folderChips{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 6px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.folderChips::-webkit-scrollbar{display:none}
+.folderChips button{flex:none;font:inherit;font-size:14px;white-space:nowrap;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:7px 12px;cursor:pointer}
+.folderChips button[aria-pressed=true]{background:var(--blue);border-color:var(--blue);color:var(--card);font-weight:700}
+.folderChips .n{font-size:12px;opacity:.75;margin-left:4px;font-variant-numeric:tabular-nums}
+.folderChips .add{color:var(--blue);font-weight:700}
+.chip.fchip{background:transparent;padding:0 2px;font-size:16px;text-transform:none;letter-spacing:0;border:0}
+.entry .meta .spacer{min-width:0}
+.entry .meta .chip.flags{font-size:13px}
+.entry .meta .icon{padding:6px 6px}
+.folderMgr{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.folderMgr li{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:6px 0;border-bottom:1px solid var(--line)}
+.folderMgr li:last-child{border-bottom:0}
+.folderMgr .fname{flex:1;min-width:0;font-weight:600;overflow-wrap:anywhere}
+.folderMgr .fcount{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.folderMgr .confirmRow{flex-basis:100%;display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:14px}
+dialog#folderDlg{border:1px solid var(--line);border-radius:18px;background:var(--card);color:var(--ink);padding:18px;width:min(420px,calc(100% - 32px))}
+dialog#folderDlg::backdrop{background:rgba(10,14,30,.45)}
+dialog#folderDlg form{display:flex;flex-direction:column;gap:14px}
+dialog#folderDlg h2{margin:0;font-family:var(--f-display);font-size:20px}
+.emojiPick{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
+.emojiPick button{font-size:22px;line-height:1;padding:8px 0;border:1px solid var(--line);background:var(--paper);border-radius:10px;cursor:pointer}
+.emojiPick button[aria-pressed=true]{border-color:var(--blue);background:var(--blue-soft);box-shadow:0 0 0 2px var(--blue) inset}
 .switchRow{display:flex;align-items:center;gap:12px;background:none;border:0;padding:2px 0;font:inherit;font-size:15px;color:var(--ink);cursor:pointer;text-align:left;justify-self:start}
 .switchRow .track{flex:none;width:46px;height:28px;border-radius:999px;background:var(--line);position:relative;transition:background .2s}
 .switchRow .track::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:var(--card);box-shadow:0 1px 3px rgba(0,0,0,.25);transition:transform .2s}
@@ -159,7 +186,7 @@ ul.list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;ga
 .entry .arrow{color:var(--muted);margin:0 .35em}
 .entry .fr{font-weight:400}
 .entry .note{grid-column:1/-1;color:var(--muted);font-style:italic;font-size:15px;margin:0;overflow-wrap:anywhere}
-.entry .meta{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:13px;color:var(--muted)}
+.entry .meta{grid-column:1/-1;display:flex;flex-wrap:nowrap;gap:4px;align-items:center;font-size:13px;color:var(--muted)}
 .chip{font:inherit;font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:3px 9px;border-radius:999px;background:var(--blue-soft);color:var(--blue);border:0}
 .chip.todo{background:var(--hl);color:var(--hl-ink)}
 .chip.done{background:var(--ok-soft);color:var(--ok)}
@@ -263,6 +290,11 @@ button.chip{cursor:pointer}
         <span class="lookup" id="translateHint"></span>
       </div>
       <div class="lookup">Vérifier ailleurs : <a id="wrLink" href="https://www.wordreference.com/enfr/" target="_blank" rel="noopener">WordReference</a> · <a id="lingLink" href="https://www.linguee.fr/anglais-francais/" target="_blank" rel="noopener">Linguee</a> · <a id="gtLink" href="https://translate.google.com/?sl=en&amp;tl=fr" target="_blank" rel="noopener">Google Trad.</a></div>
+      <div class="folderRow">
+        <label for="folderSel" class="folderLabel">📁 Dossier</label>
+        <select id="folderSel"></select>
+        <span class="folderHint" id="folderHint"></span>
+      </div>
       <div class="row">
         <button class="btn ghost" id="cancelEdit" type="button" hidden>Annuler</button>
         <span class="spacer"></span>
@@ -278,6 +310,7 @@ button.chip{cursor:pointer}
       <button type="button" data-mode="list" aria-pressed="true">📋 Liste <span class="count" id="countAll">0</span></button>
       <button type="button" data-mode="cards" aria-pressed="false">🃏 Flashcards</button>
     </div>
+    <div class="folderChips" id="folderChips" role="group" aria-label="Dossiers"></div>
     <div class="view" id="revList">
     <div class="tools">
         <input type="search" id="search" placeholder="Rechercher" aria-label="Rechercher">
@@ -349,6 +382,11 @@ button.chip{cursor:pointer}
       </div>
     </form>
     <div class="backup">
+      <h2>📁 Dossiers</h2>
+      <ul class="folderMgr" id="folderMgr"></ul>
+      <div class="row"><button class="btn ghost" id="newFolderBtn" type="button">＋ Nouveau dossier</button></div>
+    </div>
+    <div class="backup">
       <h2>🔄 Synchronisation</h2>
       <p>Tes mots sont partagés entre tous tes appareils reliés au même relais (iPhone, PC…), et sauvegardés en ligne.</p>
       <p>État : <span class="stat" id="syncStatus">—</span></p>
@@ -371,6 +409,20 @@ button.chip{cursor:pointer}
   </section>
 </div>
 <div class="toast" id="toast" hidden></div>
+<dialog id="folderDlg" aria-labelledby="folderDlgTitle">
+  <form id="folderForm" method="dialog">
+    <h2 id="folderDlgTitle">Nouveau dossier</h2>
+    <label for="folderName">Nom
+      <input type="text" id="folderName" maxlength="40" autocapitalize="sentences" placeholder="Travail, Voyage, Séries…">
+    </label>
+    <div class="emojiPick" id="emojiPick" role="group" aria-label="Emoji"></div>
+    <div class="row">
+      <span class="spacer"></span>
+      <button class="btn ghost" type="button" id="folderCancel">Annuler</button>
+      <button class="btn" type="submit" id="folderOk">Créer</button>
+    </div>
+  </form>
+</dialog>
 
 <script>
 const $ = s => document.querySelector(s);
@@ -380,7 +432,7 @@ const KEY = "carnet-anglais-v1", BKEY = "carnet-anglais-lastbackup";
 // ---------- Storage (local copy, kept in sync with the relay when set up) ----------
 const DKEY = "carnet-anglais-deleted";   // {id: deletedAt} so deletions reach other devices
 function load(){ try{ return JSON.parse(localStorage.getItem(KEY)) || []; }catch(e){ return []; } }
-const sigOf = e => JSON.stringify([e.en,e.fr,e.note||"",e.origin,e.status,e.exEn||"",e.exFr||"",e.tip||""]);
+const sigOf = e => JSON.stringify([e.en,e.fr,e.note||"",e.origin,e.status,e.exEn||"",e.exFr||"",e.tip||"",e.folder||""]);
 let entries = load(), deleted = {}, lastSig = {};
 try{ deleted = JSON.parse(localStorage.getItem(DKEY)) || {}; }catch(e){}
 for(const e of entries){ if(!e.updatedAt) e.updatedAt = e.createdAt || Date.now(); lastSig[e.id] = sigOf(e); }
@@ -401,6 +453,28 @@ function save(){
   const ok = persist();
   if(typeof scheduleSync==="function") scheduleSync();
   return ok;
+}
+// ---------- Folders ({id, name, emoji, updatedAt}; deleted ones stay as {id, deleted:true, updatedAt}) ----------
+const FOLDERS_KEY="carnet-anglais-folders";
+let folders=[]; try{ folders=JSON.parse(localStorage.getItem(FOLDERS_KEY))||[]; }catch(e){}
+const liveFolders = () => folders.filter(f=>!f.deleted).sort((a,b)=>a.name.localeCompare(b.name,"fr"));
+const folderById = id => id ? folders.find(f=>f.id===id && !f.deleted) : null;
+const folderLabel = f => (f.emoji ? f.emoji+" " : "")+f.name;
+function persistFolders(){ try{ localStorage.setItem(FOLDERS_KEY, JSON.stringify(folders)); }catch(e){} }
+function addFolder(name, emoji){
+  const f={id:uid(), name, emoji, updatedAt:Date.now()};
+  folders.push(f); persistFolders(); if(typeof scheduleSync==="function") scheduleSync(); return f;
+}
+function updateFolder(id, patch){
+  const f=folders.find(x=>x.id===id); if(!f) return;
+  Object.assign(f, patch, {updatedAt:Date.now()}); persistFolders(); scheduleSync();
+}
+// Deleting a folder never deletes words: they move to "Sans dossier".
+function deleteFolder(id){
+  const i=folders.findIndex(x=>x.id===id); if(i<0) return;
+  folders[i]={id, deleted:true, updatedAt:Date.now()}; persistFolders();
+  for(const e of entries) if(e.folder===id) e.folder="";
+  save();
 }
 try{ navigator.storage && navigator.storage.persist && navigator.storage.persist(); }catch(e){}
 
@@ -565,6 +639,14 @@ function mergeLists(a,b){
 function localSnapshot(){
   return [...entries.map(e=>({...e})), ...Object.entries(deleted).map(([id,t])=>({id,deleted:true,updatedAt:t}))];
 }
+function applyRemoteFolders(remoteF){
+  const merged = mergeLists(folders.map(f=>({...f})), remoteF);
+  const remoteAt = new Map(remoteF.map(f=>[f.id,+f.updatedAt||0]));
+  const changed = JSON.stringify(merged.map(f=>[f.id,f.updatedAt]).sort()) !== JSON.stringify(folders.map(f=>[f.id,f.updatedAt]).sort());
+  folders = merged; persistFolders();
+  if(merged.some(f=>remoteAt.get(f.id)!==(+f.updatedAt||0))) syncAgain=true;
+  return changed;
+}
 function applyRemote(remote){
   const merged = mergeLists(localSnapshot(), remote);
   const remoteAt = new Map(remote.map(e=>[e.id,+e.updatedAt||0]));
@@ -583,9 +665,12 @@ async function syncNow(manual){
   clearTimeout(syncTimer);
   syncing=true; setSyncStatus("synchronisation…"); $("#syncBtn") && ($("#syncBtn").disabled=true);
   try{
-    const data = await callRelay(settings,{sync:true, entries:localSnapshot()});
+    const data = await callRelay(settings,{sync:true, entries:localSnapshot(), folders:folders.map(f=>({...f}))});
     syncOff="";
+    // An older relay doesn't know about folders: keep them local until it's updated.
+    const fChanged = Array.isArray(data.folders) ? applyRemoteFolders(data.folders) : false;
     applyRemote(Array.isArray(data.entries)?data.entries:[]);
+    if(fChanged) render();
     try{ localStorage.setItem(SYNCKEY,String(Date.now())); }catch(e){}
     syncStatusIdle();
     if(manual) toast("Synchronisé");
@@ -646,9 +731,11 @@ async function fetchTranslation(){
   const text = (fromFr ? $("#frInput") : $("#enInput")).value.trim();
   const r=await callRelay(settings,{
     text, source: fromFr?"FR":"EN", target: fromFr?("EN-"+settings.accent):"FR",
-    context: $("#noteInput").value.trim(), engine: settings.engine||"claude"
+    context: $("#noteInput").value.trim(), engine: settings.engine||"claude",
+    folders: liveFolders().map(f=>f.name)
   });
   if(!r.translation) throw new Error("Aucune traduction reçue.");
+  if(r.folder) suggestFolder(r.folder);
   return { text:r.translation, alts:r.alternatives||[], exEn:r.exampleEn||"", exFr:r.exampleFr||"", tip:r.note||"",
            engine:r.engine||"deepl", fallback:!!r.fallback, reason:r.reason||"" };
 }
@@ -689,6 +776,7 @@ function speak(text){
 function visible(){
   const q=$("#search").value.trim().toLowerCase();
   return entries.filter(e=>{
+    if(!inCurFolder(e)) return false;
     if(filter==="todo" && e.status==="learned") return false;
     if(filter==="done" && e.status!=="learned") return false;
     return !q || [e.en,e.fr,e.note].some(v=>String(v||"").toLowerCase().includes(q));
@@ -700,7 +788,11 @@ function render(){
   $("#countTodo").textContent=entries.filter(e=>e.status!=="learned").length;
   $("#empty").hidden = entries.length>0;
   const items=visible(), list=$("#list");
-  if(entries.length && !items.length){ list.innerHTML=`<li class="lookup">Aucun résultat.</li>`; return; }
+  renderFolderUI();
+  if(entries.length && !items.length){
+    const emptyFolder = curFolder!=="all" && !entries.some(inCurFolder);
+    list.innerHTML=`<li class="lookup">${emptyFolder ? "Aucun mot dans ce dossier pour l'instant. Choisis-le au moment d'ajouter un mot, ou via Modifier." : "Aucun résultat."}</li>`; return;
+  }
   list.innerHTML = items.map(e=>{
     const learned=e.status==="learned";
     const confirm = confirmId===e.id ? `<div class="confirm">Supprimer « ${esc(e.en)} » ? <button class="btn" data-act="del-yes" data-id="${e.id}" style="background:var(--danger)">Supprimer</button><button class="btn ghost" data-act="del-no">Annuler</button></div>` : "";
@@ -713,6 +805,7 @@ function render(){
       <div class="meta">
         <span class="chip flags" aria-label="${e.origin==="fr"?"français vers anglais":"anglais vers français"}">${e.origin==="fr"?"🇫🇷➡️"+enFlag():enFlag()+"➡️🇫🇷"}</span>
         <button class="chip ${learned?"done":"todo"}" data-act="toggle" data-id="${e.id}">${learned?"Acquis":"À revoir"}</button>
+        ${curFolder==="all" && folderById(e.folder) ? (f=>`<span class="chip fchip" title="${esc(f.name)}" aria-label="Dossier ${esc(f.name)}">${esc(f.emoji||f.name)}</span>`)(folderById(e.folder)) : ""}
         <span class="spacer"></span>
         <button class="icon" data-act="speak" data-id="${e.id}" aria-label="Écouter">🔊</button>
         <button class="icon" data-act="edit" data-id="${e.id}">Modifier</button>
@@ -724,6 +817,7 @@ function render(){
 function resetForm(){
   $("#enInput").value=""; $("#frInput").value=""; $("#noteInput").value="";
   editingId=null; $("#saveBtn").textContent="Ajouter au carnet"; $("#cancelEdit").hidden=true; pending=null; updateLinks(); updateTranslateUI();
+  if(typeof setFolderSel==="function") setFolderSel(lastFolder());
 }
 $("#list").addEventListener("click",ev=>{
   const b=ev.target.closest("[data-act]"); if(!b) return;
@@ -734,6 +828,7 @@ $("#list").addEventListener("click",ev=>{
       editingId=e.id; setOrigin(e.origin||"en");
       $("#enInput").value=e.en; $("#frInput").value=e.fr; $("#noteInput").value=e.note||"";
       $("#saveBtn").textContent="Enregistrer"; $("#cancelEdit").hidden=false; updateLinks(); updateTranslateUI();
+      setFolderSel(folderById(e.folder) ? e.folder : "");
       showTab("list"); $("#addForm").scrollIntoView({block:"start"}); break;
     case "del": confirmId=e.id; render(); break;
     case "del-no": confirmId=null; render(); break;
@@ -835,7 +930,7 @@ $("#addForm").addEventListener("submit",async ev=>{
     // Step 2: save what is on screen.
     if(fromFr){ fr=pending.src; en=pending.text; } else { en=pending.src; fr=pending.text; }
     const dup=entries.some(x=>x.en.toLowerCase()===en.toLowerCase());
-    entries.push({id:uid(),en,fr,note,origin,status:"new",createdAt:Date.now(), exEn:pending.exEn||"", exFr:pending.exFr||"", tip:pending.tip||""});
+    entries.push({id:uid(),en,fr,note,origin,status:"new",createdAt:Date.now(), exEn:pending.exEn||"", exFr:pending.exFr||"", tip:pending.tip||"", folder:chosenFolder()});
     if(save()) toast(dup?"Ajouté (tu l'avais déjà noté)":"Ajouté au carnet");
     resetForm(); render();
     return;
@@ -853,13 +948,13 @@ $("#addForm").addEventListener("submit",async ev=>{
   const wasEditing = !!editingId;
   const target = editingId && entries.find(x=>x.id===editingId);
   if(editingId && !target){ toast("Ce mot a été supprimé sur un autre appareil."); resetForm(); showTab("review"); return; }
-  if(target){ Object.assign(target,{en,fr,note,origin}); if(save()) toast("Modifié"); }
+  if(target){ Object.assign(target,{en,fr,note,origin,folder:chosenFolder()}); if(save()) toast("Modifié"); }
   else{
     const dup=entries.some(x=>x.en.toLowerCase()===en.toLowerCase());
     // Own translation: keep the example only if it belongs to this same source text.
     const src = origin==="fr" ? fr : en;
     const ex = (lastExtras && lastExtras.origin===origin && lastExtras.src===src) ? lastExtras : {};
-    entries.push({id:uid(),en,fr,note,origin,status:"new",createdAt:Date.now(), exEn:ex.exEn||"", exFr:ex.exFr||"", tip:ex.tip||""});
+    entries.push({id:uid(),en,fr,note,origin,status:"new",createdAt:Date.now(), exEn:ex.exEn||"", exFr:ex.exFr||"", tip:ex.tip||"", folder:chosenFolder()});
     if(save()) toast(dup?"Ajouté (tu l'avais déjà noté)":"Ajouté au carnet");
   }
   resetForm(); render();
@@ -889,10 +984,117 @@ function setRevMode(m){
 }
 document.querySelectorAll("[data-mode]").forEach(b=>b.addEventListener("click",()=>setRevMode(b.dataset.mode)));
 
+// ---------- Folders UI ----------
+const LASTFOLDER_KEY="carnet-anglais-lastfolder", REVFOLDER_KEY="carnet-anglais-revfolder";
+const lastFolder = () => { let v=""; try{ v=localStorage.getItem(LASTFOLDER_KEY)||""; }catch(e){} return folderById(v) ? v : ""; };
+let curFolder="all"; try{ curFolder=localStorage.getItem(REVFOLDER_KEY)||"all"; }catch(e){}
+function inCurFolder(e){
+  if(curFolder==="all") return true;
+  const f = folderById(e.folder) ? e.folder : "";
+  return curFolder==="none" ? f==="" : f===curFolder;
+}
+const chosenFolder = () => { const v=$("#folderSel").value; return folderById(v) ? v : ""; };
+function fillFolderSel(){
+  const sel=$("#folderSel"), keep=sel.value;
+  sel.innerHTML = `<option value="">Sans dossier</option>` +
+    liveFolders().map(f=>`<option value="${esc(f.id)}">${esc(folderLabel(f))}</option>`).join("") +
+    `<option value="__new">＋ Nouveau dossier…</option>`;
+  sel.value = folderById(keep) ? keep : (keep==="" ? "" : lastFolder());
+}
+function setFolderSel(id){ fillFolderSel(); $("#folderSel").value = folderById(id) ? id : ""; $("#folderHint").textContent=""; }
+// Claude suggests a folder by name: pre-select it (still changeable) unless editing.
+function suggestFolder(name){
+  if(editingId) return;
+  const f = liveFolders().find(x=>x.name.toLowerCase()===String(name).toLowerCase()); if(!f) return;
+  if($("#folderSel").value!==f.id){ setFolderSel(f.id); $("#folderHint").textContent="suggéré par Claude"; }
+}
+let selBefore="";
+$("#folderSel").addEventListener("focus",()=>{ selBefore=$("#folderSel").value; });
+$("#folderSel").addEventListener("change",async()=>{
+  const sel=$("#folderSel"); $("#folderHint").textContent="";
+  if(sel.value==="__new"){
+    const f = await openFolderDialog();
+    setFolderSel(f ? f.id : selBefore);
+  }
+  if(!editingId){ try{ localStorage.setItem(LASTFOLDER_KEY, chosenFolder()); }catch(e){} }
+  selBefore=sel.value;
+});
+function renderFolderChips(){
+  const box=$("#folderChips"); if(!box) return;
+  const live=liveFolders();
+  if(curFolder!=="all" && curFolder!=="none" && !folderById(curFolder)) curFolder="all";
+  const count = id => entries.filter(e => id==="all" ? true : id==="none" ? !folderById(e.folder) : e.folder===id).length;
+  const chip = (id,label) => `<button type="button" data-folder="${esc(id)}" aria-pressed="${curFolder===id}">${label}<span class="n">${count(id)}</span></button>`;
+  box.innerHTML = chip("all","Tous") + live.map(f=>chip(f.id, esc(folderLabel(f)))).join("") +
+    (live.length ? chip("none","Sans dossier") : "") +
+    `<button type="button" class="add" data-folder-new aria-label="Nouveau dossier">＋ Dossier</button>`;
+}
+$("#folderChips").addEventListener("click",async ev=>{
+  const b=ev.target.closest("button"); if(!b) return;
+  if(b.hasAttribute("data-folder-new")){ const f=await openFolderDialog(); if(f){ curFolder=f.id; } }
+  else curFolder=b.dataset.folder;
+  try{ localStorage.setItem(REVFOLDER_KEY,curFolder); }catch(e){}
+  render(); if(revMode==="cards") startDeck();
+});
+function renderFolderMgr(){
+  const ul=$("#folderMgr"); if(!ul) return;
+  const live=liveFolders();
+  if(!live.length){ ul.innerHTML=`<li class="lookup">Aucun dossier pour l'instant.</li>`; return; }
+  ul.innerHTML = live.map(f=>{
+    const n=entries.filter(e=>e.folder===f.id).length;
+    const confirm = folderConfirm===f.id ? `<div class="confirmRow">Supprimer « ${esc(f.name)} » ? Ses ${n} mot(s) iront dans « Sans dossier ».
+      <button class="btn" type="button" data-fdel-yes="${esc(f.id)}" style="background:var(--danger)">Supprimer</button>
+      <button class="btn ghost" type="button" data-fdel-no>Annuler</button></div>` : "";
+    return `<li><span class="fname">${esc(folderLabel(f))}</span><span class="fcount">${n} mot${n>1?"s":""}</span>
+      <button class="icon" type="button" data-fedit="${esc(f.id)}">Modifier</button>
+      <button class="icon danger" type="button" data-fdel="${esc(f.id)}" aria-label="Supprimer le dossier">✕</button>${confirm}</li>`;
+  }).join("");
+}
+let folderConfirm=null;
+$("#folderMgr").addEventListener("click",async ev=>{
+  const b=ev.target.closest("button"); if(!b) return;
+  if(b.dataset.fedit){ await openFolderDialog(folderById(b.dataset.fedit)); }
+  else if(b.dataset.fdel){ folderConfirm=b.dataset.fdel; }
+  else if(b.hasAttribute("data-fdel-no")){ folderConfirm=null; }
+  else if(b.dataset.fdelYes){ deleteFolder(b.dataset.fdelYes); folderConfirm=null; toast("Dossier supprimé"); }
+  render();
+});
+$("#newFolderBtn").addEventListener("click",async()=>{ await openFolderDialog(); render(); });
+function renderFolderUI(){ fillFolderSel(); renderFolderChips(); renderFolderMgr(); }
+
+// Create or edit a folder in a small dialog. Resolves with the folder, or null if cancelled.
+const EMOJIS=["💼","✈️","🎬","📚","💬","🍽️","🏠","💻","⚽","🎵","🛒","❤️"];
+function openFolderDialog(existing){
+  return new Promise(resolve=>{
+    const dlg=$("#folderDlg"); let emoji = existing ? existing.emoji : EMOJIS[0];
+    $("#folderDlgTitle").textContent = existing ? "Modifier le dossier" : "Nouveau dossier";
+    $("#folderOk").textContent = existing ? "Enregistrer" : "Créer";
+    $("#folderName").value = existing ? existing.name : "";
+    const pick=$("#emojiPick");
+    const paint=()=>{ pick.innerHTML=EMOJIS.map(e=>`<button type="button" data-emoji="${e}" aria-pressed="${e===emoji}">${e}</button>`).join(""); };
+    paint();
+    pick.onclick=ev=>{ const b=ev.target.closest("[data-emoji]"); if(b){ emoji=b.dataset.emoji; paint(); } };
+    const done=(val)=>{ dlg.close(); $("#folderForm").onsubmit=null; $("#folderCancel").onclick=null; dlg.oncancel=null; resolve(val); };
+    $("#folderCancel").onclick=()=>done(null);
+    dlg.oncancel=(e)=>{ e.preventDefault(); done(null); };
+    $("#folderForm").onsubmit=ev=>{
+      ev.preventDefault();
+      const name=$("#folderName").value.trim().replace(/\s+/g," ");
+      if(!name){ toast("Donne un nom au dossier."); $("#folderName").focus(); return; }
+      const clash=liveFolders().find(f=>f.name.toLowerCase()===name.toLowerCase() && (!existing || f.id!==existing.id));
+      if(clash){ toast("Un dossier porte déjà ce nom."); return; }
+      if(existing){ updateFolder(existing.id,{name,emoji}); toast("Dossier modifié"); done(folderById(existing.id)); }
+      else { const f=addFolder(name,emoji); toast("Dossier créé"); done(f); }
+    };
+    if(dlg.showModal) dlg.showModal(); else dlg.setAttribute("open","");
+    setTimeout(()=>$("#folderName").focus(),50);
+  });
+}
+
 // ---------- Review ----------
 function startDeck(){
   const inc=$("#incDone").checked;
-  deck=entries.filter(e=>inc||e.status!=="learned").map(e=>e.id);
+  deck=entries.filter(e=>inCurFolder(e) && (inc||e.status!=="learned")).map(e=>e.id);
   for(let i=deck.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[deck[i],deck[j]]=[deck[j],deck[i]];}
   pos=0; revealed=false; renderCard();
 }
@@ -905,7 +1107,10 @@ function renderCard(){
   const plain = html => `<div class="card3d"><div class="face">${html}</div></div>`;
   if(!entries.length){ flash.innerHTML=plain(`<div class="side">Rien à réviser</div><div>Traduis des mots dans l'onglet 🌐 Traduire et ajoute-les au carnet.</div>`); btns.innerHTML=""; prog.textContent=""; return; }
   if(pos>=deck.length){
-    flash.innerHTML = plain(deck.length ? `<div class="side">Bravo</div><div class="word">Série terminée</div>` : `<div class="side">Tout est acquis</div><div class="note">Coche « Inclure les acquis » pour les revoir.</div>`);
+    const folderEmpty = curFolder!=="all" && !entries.some(inCurFolder);
+    flash.innerHTML = plain(deck.length ? `<div class="side">Bravo</div><div class="word">Série terminée</div>`
+      : folderEmpty ? `<div class="side">Dossier vide</div><div class="note">Ajoute des mots dans ce dossier, ou choisis « Tous ».</div>`
+      : `<div class="side">Tout est acquis</div><div class="note">Coche « Inclure les acquis » pour les revoir.</div>`);
     btns.innerHTML=`<span class="spacer"></span><button class="btn" data-r="restart">Nouvelle série</button><span class="spacer"></span>`; prog.textContent=""; return;
   }
   const e=entries.find(x=>x.id===deck[pos]); if(!e){ pos++; return renderCard(); }
@@ -1016,7 +1221,7 @@ function showLastBackup(){
 $("#exportBtn").addEventListener("click",async()=>{
   if(!entries.length) return toast("Le carnet est vide.");
   const d=new Date(), name=`carnet-anglais-${d.toISOString().slice(0,10)}.json`;
-  const blob=new Blob([JSON.stringify({app:"carnet-anglais",version:1,exportedAt:d.toISOString(),entries},null,2)],{type:"application/json"});
+  const blob=new Blob([JSON.stringify({app:"carnet-anglais",version:2,exportedAt:d.toISOString(),entries,folders:liveFolders()},null,2)],{type:"application/json"});
   const file=new File([blob],name,{type:"application/json"});
   try{
     if(navigator.canShare && navigator.canShare({files:[file]})){ await navigator.share({files:[file],title:name}); }
@@ -1031,11 +1236,18 @@ $("#importFile").addEventListener("change",async ev=>{
   try{
     const data=JSON.parse(await f.text()); const list=Array.isArray(data)?data:data.entries;
     if(!Array.isArray(list)) throw 0;
+    // Folders from the file are matched by name, created if missing.
+    const fmap={};
+    for(const f of (Array.isArray(data.folders)?data.folders:[])){
+      if(!f || f.deleted || !f.name) continue;
+      const have=liveFolders().find(x=>x.name.toLowerCase()===String(f.name).toLowerCase());
+      fmap[f.id] = (have || addFolder(String(f.name).slice(0,40), String(f.emoji||"").slice(0,8))).id;
+    }
     const seen=new Set(entries.map(e=>(e.en+"|"+e.fr).toLowerCase())); let added=0;
     for(const e of list){
       if(!e || !e.en || !e.fr) continue;
       const k=(e.en+"|"+e.fr).toLowerCase(); if(seen.has(k)) continue; seen.add(k);
-      entries.push({id:uid(),en:String(e.en),fr:String(e.fr),note:String(e.note||""),exEn:String(e.exEn||""),exFr:String(e.exFr||""),tip:String(e.tip||""),origin:e.origin==="fr"?"fr":"en",status:e.status==="learned"?"learned":"new",createdAt:+e.createdAt||Date.now()});
+      entries.push({id:uid(),en:String(e.en),fr:String(e.fr),note:String(e.note||""),exEn:String(e.exEn||""),exFr:String(e.exFr||""),tip:String(e.tip||""),folder:fmap[e.folder]||"",origin:e.origin==="fr"?"fr":"en",status:e.status==="learned"?"learned":"new",createdAt:+e.createdAt||Date.now()});
       added++;
     }
     save(); render(); toast(added?`${added} entrée(s) importée(s)`:"Rien de nouveau dans ce fichier");
@@ -1065,7 +1277,7 @@ if("serviceWorker" in navigator){
 
 let savedOrigin="en"; try{ savedOrigin=localStorage.getItem("carnet-anglais-origin")||"en"; }catch(e){}
 setOrigin(savedOrigin==="fr"?"fr":"en");
-updateTranslateUI(); render(); setRevMode(revMode);
+updateTranslateUI(); render(); setRevMode(revMode); setFolderSel(lastFolder());
 syncStatusIdle(); scheduleSync(500);
 </script>
 </body>

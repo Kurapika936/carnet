@@ -29,5 +29,6 @@ Pour revenir à une version : écrire à Claude **« Rollback N »** (ex. « Rol
 | v28 | 4 oct. | Synchronisation iPhone ⇄ PC ; affichage PC |
 | v29 | 5 oct. | Traduction par Claude : exemple, note d'usage, variantes ; DeepL en secours |
 | v30 | 5 oct. | Bouton ✕ pour tout effacer dans le champ |
+| v31 | 13 oct. | Dossiers : choix au moment d'ajouter, suggestion par Claude, filtre en Liste et Flashcards, gestion dans les Réglages, synchronisés |
 
 (Les numéros manquants, comme v23 et v27, étaient des étapes intermédiaires jamais publiées.)

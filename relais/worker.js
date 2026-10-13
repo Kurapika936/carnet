@@ -12,6 +12,7 @@
 
 const MAX_CHARS = 1000;
 const KEY = "carnet";
+const FKEY = "dossiers";
 const MAX_ENTRIES = 20000;
 const DEFAULT_MODEL = "claude-haiku-4-5-20251001";
 
@@ -32,14 +33,30 @@ function clean(e) {
   if (e.deleted) return { id, deleted: true, updatedAt };
   return {
     id, en: s(e.en, 2000), fr: s(e.fr, 2000), note: s(e.note, 2000),
-    exEn: s(e.exEn, 1000), exFr: s(e.exFr, 1000), tip: s(e.tip, 1000),
+    exEn: s(e.exEn, 1000), exFr: s(e.exFr, 1000), tip: s(e.tip, 1000), folder: s(e.folder, 64),
     origin: e.origin === "fr" ? "fr" : "en", status: e.status === "learned" ? "learned" : "new",
     createdAt: Number(e.createdAt) || updatedAt, updatedAt,
   };
 }
 
+function cleanFolder(f) {
+  const s = (v, n) => String(v ?? "").slice(0, n);
+  const id = s(f?.id, 64), updatedAt = Number(f?.updatedAt) || 0;
+  if (!id) return null;
+  if (f.deleted) return { id, deleted: true, updatedAt };
+  return { id, name: s(f.name, 60), emoji: s(f.emoji, 16), updatedAt };
+}
+async function mergeKey(env, key, incoming) {
+  let stored = [];
+  try { stored = JSON.parse((await env.WORDS.get(key)) || "[]"); } catch { stored = []; }
+  const merged = merge(stored, incoming);
+  const sig = l => JSON.stringify(l.map(e => [e.id, e.updatedAt]).sort());
+  if (sig(stored) !== sig(merged)) await env.WORDS.put(key, JSON.stringify(merged));
+  return merged;
+}
+
 // ---------- Traduction avec Claude ----------
-function claudePrompt(source, target) {
+function claudePrompt(source, target, folders) {
   const variant = target === "EN-GB" ? "British English (British spelling and usage)"
                 : target === "EN-US" ? "American English (American spelling and usage)" : "French";
   const from = source === "FR" ? "French" : "English";
@@ -54,21 +71,23 @@ Rules:
 - "alternatives": 0 to 2 other natural translations, only if they are genuinely different and correct; otherwise [].
 - "example_en": one short, natural, everyday English sentence that uses the English expression (the translation if translating into English, otherwise the user's English text).
 - "example_fr": the French translation of example_en.
-- "note": one short sentence in French on usage, register or a common pitfall (e.g. familier, formel, faux ami). Use "" if there is nothing useful to say.`;
+- "note": one short sentence in French on usage, register or a common pitfall (e.g. familier, formel, faux ami). Use "" if there is nothing useful to say.` +
+  (folders.length ? `
+- Also add "folder": the name of the ONE folder below that clearly fits this text's topic, copied exactly, or "" if none clearly fits. Folders: ${JSON.stringify(folders)}` : "");
 }
 function parseJsonObject(t) {
   const i = t.indexOf("{"), j = t.lastIndexOf("}");
   if (i < 0 || j <= i) throw new Error("bad json");
   return JSON.parse(t.slice(i, j + 1));
 }
-async function translateClaude(env, { text, source, target, context }) {
+async function translateClaude(env, { text, source, target, context, folders }) {
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: { "x-api-key": env.ANTHROPIC_KEY.trim(), "anthropic-version": "2023-06-01", "content-type": "application/json" },
     body: JSON.stringify({
       model: (env.CLAUDE_MODEL || DEFAULT_MODEL).trim(),
       max_tokens: 500,
-      system: claudePrompt(source, target),
+      system: claudePrompt(source, target, folders),
       messages: [{ role: "user", content: (context ? `Context: ${context}\n\n` : "") + `Text to translate:\n${text}` }],
     }),
   });
@@ -90,6 +109,7 @@ async function translateClaude(env, { text, source, target, context }) {
     translation,
     alternatives: (Array.isArray(j.alternatives) ? j.alternatives : []).map(a => str(a, 500)).filter(a => a && a !== translation).slice(0, 2),
     exampleEn: str(j.example_en, 500), exampleFr: str(j.example_fr, 500), note: str(j.note, 300),
+    folder: folders.includes(str(j.folder, 60)) ? str(j.folder, 60) : "",
     engine: "claude",
   };
 }
@@ -149,13 +169,10 @@ export default {
     if (body && body.sync) {
       if (!env.WORDS) return reply(501, { error: "no_kv", message: "Synchronisation pas encore activée : ajoute la liaison WORDS dans Cloudflare." });
       const incoming = Array.isArray(body.entries) ? body.entries.slice(0, MAX_ENTRIES).map(clean).filter(Boolean) : [];
-      let stored = [];
-      try { stored = JSON.parse((await env.WORDS.get(KEY)) || "[]"); } catch { stored = []; }
-      const merged = merge(stored, incoming);
-      const before = JSON.stringify(stored.map(e => [e.id, e.updatedAt]).sort());
-      const after = JSON.stringify(merged.map(e => [e.id, e.updatedAt]).sort());
-      if (before !== after) await env.WORDS.put(KEY, JSON.stringify(merged));
-      return reply(200, { entries: merged, serverTime: Date.now() });
+      const incomingF = Array.isArray(body.folders) ? body.folders.slice(0, 500).map(cleanFolder).filter(Boolean) : [];
+      const entries = await mergeKey(env, KEY, incoming);
+      const folders = await mergeKey(env, FKEY, incomingF);
+      return reply(200, { entries, folders, serverTime: Date.now() });
     }
 
     // ---------- Traduction ----------
@@ -164,6 +181,7 @@ export default {
       source: String(body?.source || "").toUpperCase(),
       target: String(body?.target || "").toUpperCase(),
       context: String(body?.context || "").slice(0, 500),
+      folders: (Array.isArray(body?.folders) ? body.folders : []).map(f => String(f).slice(0, 60)).filter(Boolean).slice(0, 50),
     };
     if (!req.text) return reply(400, { error: "empty", message: "Rien à traduire." });
     if (req.text.length > MAX_CHARS) return reply(400, { error: "long", message: `Texte trop long (max ${MAX_CHARS} caractères).` });
