@@ -118,6 +118,34 @@ dialog#folderDlg h2{margin:0;font-family:var(--f-display);font-size:20px}
 .emojiPick{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
 .emojiPick button{font-size:22px;line-height:1;padding:8px 0;border:1px solid var(--line);background:var(--paper);border-radius:10px;cursor:pointer}
 .emojiPick button[aria-pressed=true]{border-color:var(--blue);background:var(--blue-soft);box-shadow:0 0 0 2px var(--blue) inset}
+.selRow{display:flex;align-items:center;gap:8px;margin:-4px 0}
+.btn.small{padding:7px 12px;font-size:14px;border-radius:10px}
+.entry{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+button.chip.fchip{cursor:pointer;border-radius:8px}
+button.chip.fchip:hover{background:var(--blue-soft)}
+.entry.lifted{opacity:.45;transform:scale(.98);transition:transform .15s,opacity .15s}
+.dragGhost{position:fixed;z-index:20;pointer-events:none;transform:translate(-50%,-130%);background:var(--blue);color:var(--card);font-weight:700;font-size:15px;padding:8px 14px;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.25);max-width:70vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.list.selecting{padding-bottom:84px}
+.list.selecting .entry{position:relative;padding-left:46px;cursor:pointer}
+.list.selecting .entry::before{content:"";position:absolute;left:14px;top:16px;width:22px;height:22px;border-radius:50%;border:2px solid var(--line);background:var(--card);display:grid;place-items:center;font-size:13px;font-weight:800;color:var(--card)}
+.list.selecting .entry.selected{border-color:var(--blue);background:var(--blue-soft)}
+.list.selecting .entry.selected::before{content:"✓";background:var(--blue);border-color:var(--blue)}
+.list.selecting .entry .meta button{pointer-events:none}
+.list.selecting .entry .meta .icon{display:none}
+.entry .meta .chip{white-space:nowrap}
+.selBar{position:fixed;left:0;right:0;bottom:0;z-index:7;display:flex;align-items:center;gap:8px;background:var(--card);border-top:1px solid var(--line);padding:10px max(16px,env(safe-area-inset-left)) calc(10px + env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-right));font-size:15px;font-weight:600}
+.selBar .btn:disabled{opacity:.45}
+.sheet{position:fixed;left:50%;transform:translateX(-50%);bottom:0;z-index:8;width:min(640px,100%);background:var(--card);border:1px solid var(--line);border-bottom:0;border-radius:20px 20px 0 0;box-shadow:0 -10px 30px rgba(0,0,0,.18);padding:14px 16px calc(16px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:12px}
+.sheetHead{display:flex;align-items:center;gap:8px;font-weight:700;font-size:16px}
+.sheetHead span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px;max-height:45vh;overflow-y:auto}
+.tile{font:inherit;display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 6px;border:1px solid var(--line);background:var(--paper);color:var(--ink);border-radius:14px;cursor:pointer;min-width:0}
+.tile .te{font-size:26px;line-height:1}
+.tile .tn{font-size:13px;font-weight:600;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tile.current{border-color:var(--blue);box-shadow:0 0 0 2px var(--blue) inset}
+.tile.hover{background:var(--blue);color:var(--card);border-color:var(--blue);transform:scale(1.05)}
+.tile.add{color:var(--blue)}
+@media (prefers-reduced-motion:reduce){.entry.lifted,.tile.hover{transition:none;transform:none}}
 .switchRow{display:flex;align-items:center;gap:12px;background:none;border:0;padding:2px 0;font:inherit;font-size:15px;color:var(--ink);cursor:pointer;text-align:left;justify-self:start}
 .switchRow .track{flex:none;width:46px;height:28px;border-radius:999px;background:var(--line);position:relative;transition:background .2s}
 .switchRow .track::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:var(--card);box-shadow:0 1px 3px rgba(0,0,0,.25);transition:transform .2s}
@@ -320,6 +348,7 @@ button.chip{cursor:pointer}
           <button type="button" data-filter="done" aria-pressed="false">Acquis</button>
         </div>
       </div>
+      <div class="selRow"><span class="spacer"></span><button class="btn ghost small" type="button" id="selBtn">☑️ Sélectionner</button></div>
       <ul class="list" id="list"></ul>
       <div class="empty" id="empty">
         <div><strong>Ton carnet est vide.</strong> Traduis un mot dans l'onglet 🌐 Traduire, puis touche « Ajouter au carnet ». Il apparaîtra ici, comme ceci :</div>
@@ -409,6 +438,15 @@ button.chip{cursor:pointer}
   </section>
 </div>
 <div class="toast" id="toast" hidden></div>
+<div class="selBar" id="selBar" hidden>
+  <span id="selCount">0 sélectionné</span><span class="spacer"></span>
+  <button class="btn ghost" type="button" id="selCancel">Annuler</button>
+  <button class="btn" type="button" id="selMove">📁 Ranger</button>
+</div>
+<div class="sheet" id="moveSheet" hidden role="dialog" aria-labelledby="moveTitle">
+  <div class="sheetHead"><span id="moveTitle">Ranger dans…</span><button class="icon" type="button" id="moveClose" aria-label="Fermer">✕</button></div>
+  <div class="tiles" id="moveTiles"></div>
+</div>
 <dialog id="folderDlg" aria-labelledby="folderDlgTitle">
   <form id="folderForm" method="dialog">
     <h2 id="folderDlgTitle">Nouveau dossier</h2>
@@ -807,10 +845,11 @@ function render(){
     const emptyFolder = curFolder!=="all" && !entries.some(inCurFolder);
     list.innerHTML=`<li class="lookup">${emptyFolder ? "Aucun mot dans ce dossier pour l'instant. Choisis-le au moment d'ajouter un mot, ou via Modifier." : "Aucun résultat."}</li>`; return;
   }
+  list.classList.toggle("selecting", selecting);
   list.innerHTML = items.map(e=>{
     const learned=e.status==="learned";
     const confirm = confirmId===e.id ? `<div class="confirm">Supprimer « ${esc(e.en)} » ? <button class="btn" data-act="del-yes" data-id="${e.id}" style="background:var(--danger)">Supprimer</button><button class="btn ghost" data-act="del-no">Annuler</button></div>` : "";
-    return `<li class="entry">
+    return `<li class="entry${selected.has(e.id)?" selected":""}" data-id="${e.id}">
       <p class="terms">${e.origin==="fr"
         ? `<span class="fr">${esc(e.fr)}</span><span class="arrow">→</span><span class="en">${esc(e.en)}</span>`
         : `<span class="en">${esc(e.en)}</span><span class="arrow">→</span><span class="fr">${esc(e.fr)}</span>`}</p>
@@ -819,7 +858,7 @@ function render(){
       <div class="meta">
         <span class="chip flags" aria-label="${e.origin==="fr"?"français vers anglais":"anglais vers français"}">${e.origin==="fr"?"🇫🇷➡️"+enFlag():enFlag()+"➡️🇫🇷"}</span>
         <button class="chip ${learned?"done":"todo"}" data-act="toggle" data-id="${e.id}">${learned?"Acquis":"À revoir"}</button>
-        ${curFolder==="all" && folderById(e.folder) ? (f=>`<span class="chip fchip" title="${esc(f.name)}" aria-label="Dossier ${esc(f.name)}">${esc(f.emoji||f.name)}</span>`)(folderById(e.folder)) : ""}
+        ${(f=>`<button class="chip fchip" data-act="move" data-id="${e.id}" title="${f?esc(f.name):"Ranger dans un dossier"}" aria-label="${f?"Dossier "+esc(f.name)+" : changer":"Ranger dans un dossier"}">${f?esc(f.emoji||"📁"):"📁"}</button>`)(folderById(e.folder))}
         <span class="spacer"></span>
         <button class="icon" data-act="speak" data-id="${e.id}" aria-label="Écouter">🔊</button>
         <button class="icon" data-act="edit" data-id="${e.id}">Modifier</button>
@@ -834,6 +873,11 @@ function resetForm(){
   if(typeof setFolderSel==="function") setFolderSel(lastFolder());
 }
 $("#list").addEventListener("click",ev=>{
+  if(selecting){
+    const li=ev.target.closest(".entry[data-id]"); if(!li) return;
+    const id=li.dataset.id; selected.has(id) ? selected.delete(id) : selected.add(id);
+    li.classList.toggle("selected", selected.has(id)); updateSelBar(); return;
+  }
   const b=ev.target.closest("[data-act]"); if(!b) return;
   const e=entries.find(x=>x.id===b.dataset.id);
   switch(b.dataset.act){
@@ -848,9 +892,103 @@ $("#list").addEventListener("click",ev=>{
     case "del-no": confirmId=null; render(); break;
     case "del-yes": entries=entries.filter(x=>x.id!==b.dataset.id); confirmId=null; save(); render(); toast("Supprimé"); break;
     case "toggle": e.status = e.status==="learned"?"new":"learned"; save(); render(); break;
+    case "move": openMoveSheet([e.id]); break;
   }
 });
 $("#cancelEdit").addEventListener("click",()=>{ resetForm(); showTab("review"); });
+
+// ---------- Ranger des mots : bouton dossier, glisser-déposer, sélection multiple ----------
+let selecting=false; const selected=new Set();
+function setSelecting(on){
+  selecting=on; selected.clear();
+  $("#selBtn").textContent = on ? "Terminer" : "☑️ Sélectionner";
+  updateSelBar(); render();
+}
+function updateSelBar(){
+  $("#selBar").hidden = !selecting;
+  const n=selected.size; $("#selCount").textContent = n ? `${n} sélectionné${n>1?"s":""}` : "Touche les mots à ranger";
+  $("#selMove").disabled = !n;
+}
+$("#selBtn").addEventListener("click",()=>setSelecting(!selecting));
+$("#selCancel").addEventListener("click",()=>setSelecting(false));
+$("#selMove").addEventListener("click",()=>{ if(selected.size) openMoveSheet([...selected]); });
+
+let moveIds=[];
+function openMoveSheet(ids){
+  moveIds=ids;
+  const one = ids.length===1 && entries.find(x=>x.id===ids[0]);
+  const cur = one ? (folderById(one.folder)?one.folder:"") : null;
+  $("#moveTitle").textContent = one ? `Ranger « ${one.origin==="fr"?one.fr:one.en} » dans…` : `Ranger ${ids.length} mots dans…`;
+  const tile=(id,label)=>`<button type="button" class="tile${cur===id?" current":""}" data-move="${esc(id)}">${label}</button>`;
+  $("#moveTiles").innerHTML = liveFolders().map(f=>tile(f.id,`<span class="te">${esc(f.emoji||"📁")}</span><span class="tn">${esc(f.name)}</span>`)).join("")
+    + tile("",`<span class="te">🗂️</span><span class="tn">Sans dossier</span>`)
+    + `<button type="button" class="tile add" data-move="__new"><span class="te">＋</span><span class="tn">Nouveau</span></button>`;
+  $("#moveSheet").hidden=false;
+}
+function closeMoveSheet(){ $("#moveSheet").hidden=true; moveIds=[]; }
+async function moveTo(fid){
+  const ids=moveIds; if(!ids.length) return;
+  if(fid==="__new"){ const f=await openFolderDialog(); if(!f) return; fid=f.id; }
+  let n=0; for(const e of entries) if(ids.includes(e.id) && (e.folder||"")!==fid){ e.folder=fid; n++; }
+  closeMoveSheet();
+  if(selecting) setSelecting(false);
+  if(n){ save(); render(); }
+  const f=folderById(fid);
+  toast(`${ids.length>1?ids.length+" mots rangés":"Rangé"} dans ${f?folderLabel(f):"Sans dossier"}`);
+}
+$("#moveTiles").addEventListener("click",ev=>{ const t=ev.target.closest("[data-move]"); if(t) moveTo(t.dataset.move); });
+$("#moveClose").addEventListener("click",closeMoveSheet);
+
+// Glisser-déposer : appui long (doigt) ou glissement (souris) sur un mot, puis lâcher sur un dossier.
+let lp=null;
+function tileAt(x,y){ const el=document.elementFromPoint(x,y); return el && el.closest ? el.closest("#moveTiles [data-move]") : null; }
+function endWordDrag(drop){
+  if(!lp) return;
+  clearTimeout(lp.timer);
+  if(lp.active){
+    lp.li.classList.remove("lifted"); lp.ghost && lp.ghost.remove();
+    document.querySelectorAll("#moveTiles .hover").forEach(t=>t.classList.remove("hover"));
+    if(drop) moveTo(drop.dataset.move);   // sinon la feuille reste ouverte : on peut toucher un dossier
+  }
+  lp=null;
+}
+function activateDrag(){
+  if(!lp || lp.active) return;
+  lp.active=true;
+  try{ navigator.vibrate && navigator.vibrate(12); }catch(e){}
+  lp.li.classList.add("lifted");
+  const e=entries.find(x=>x.id===lp.id);
+  const g=document.createElement("div"); g.className="dragGhost";
+  g.textContent = e ? (e.origin==="fr"?e.fr:e.en) : "";
+  document.body.appendChild(g); lp.ghost=g; placeGhost(lp.x,lp.y);
+  openMoveSheet([lp.id]);
+}
+function placeGhost(x,y){ if(lp && lp.ghost){ lp.ghost.style.left=x+"px"; lp.ghost.style.top=y+"px"; } }
+$("#list").addEventListener("pointerdown",ev=>{
+  if(selecting || ev.button>0) return;
+  if(ev.target.closest("button,a,input")) return;
+  const li=ev.target.closest(".entry[data-id]"); if(!li) return;
+  lp={id:li.dataset.id, li, x:ev.clientX, y:ev.clientY, sx:ev.clientX, sy:ev.clientY, touch:ev.pointerType!=="mouse", active:false, pid:ev.pointerId};
+  if(lp.touch) lp.timer=setTimeout(activateDrag, 450);
+});
+document.addEventListener("pointermove",ev=>{
+  if(!lp || ev.pointerId!==lp.pid) return;
+  lp.x=ev.clientX; lp.y=ev.clientY;
+  const d=Math.hypot(lp.x-lp.sx, lp.y-lp.sy);
+  if(!lp.active){
+    if(lp.touch){ if(d>8) endWordDrag(null); }   // le doigt bouge avant l'appui long : c'est un défilement
+    else if(d>6) activateDrag();
+    return;
+  }
+  placeGhost(lp.x,lp.y);
+  const t=tileAt(lp.x,lp.y);
+  document.querySelectorAll("#moveTiles [data-move]").forEach(x=>x.classList.toggle("hover", x===t));
+});
+document.addEventListener("pointerup",ev=>{ if(lp && ev.pointerId===lp.pid) endWordDrag(lp.active ? tileAt(ev.clientX,ev.clientY) : null); });
+document.addEventListener("pointercancel",ev=>{ if(lp && ev.pointerId===lp.pid) endWordDrag(null); });
+// Pendant un glisser, la page ne doit pas défiler.
+document.addEventListener("touchmove",ev=>{ if(lp && lp.active) ev.preventDefault(); },{passive:false});
+document.addEventListener("contextmenu",ev=>{ if(lp) ev.preventDefault(); });
 $("#search").addEventListener("input",render);
 document.querySelectorAll("[data-filter]").forEach(b=>b.addEventListener("click",()=>{
   filter=b.dataset.filter; document.querySelectorAll("[data-filter]").forEach(x=>x.setAttribute("aria-pressed",x===b)); render();
@@ -977,6 +1115,7 @@ $("#addForm").addEventListener("submit",async ev=>{
 
 // ---------- Tabs ----------
 function showTab(t){
+  if(t!=="review"){ if(typeof selecting!=="undefined" && selecting) setSelecting(false); if(typeof closeMoveSheet==="function") closeMoveSheet(); }
   document.querySelectorAll("[data-tab]").forEach(x=>x.setAttribute("aria-selected",x.dataset.tab===t));
   ["list","review","backup"].forEach(v=>$("#view-"+v).hidden = v!==t);
   if(t==="review" && revMode==="cards") startDeck();
