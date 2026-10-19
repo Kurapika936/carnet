@@ -32,5 +32,6 @@ Pour revenir à une version : écrire à Claude **« Rollback N »** (ex. « Rol
 | v31 | 13 oct. | Dossiers : choix au moment d'ajouter, suggestion par Claude, filtre en Liste et Flashcards, gestion dans les Réglages, synchronisés |
 | v32 | 13 oct. | Coller dans le champ vide (appui long → Coller) traduit directement, sans la fenêtre « Allow Paste » |
 | v33 | 20 oct. | Ranger les mots : bouton dossier sur chaque mot, glisser-déposer (appui long ou souris), sélection multiple |
+| v34 | 20 oct. | Glisser-déposer : le panneau des dossiers se ferme en lâchant le mot ; geste plus fiable sur iPhone |
 
 (Les numéros manquants, comme v23 et v27, étaient des étapes intermédiaires jamais publiées.)

@@ -948,7 +948,8 @@ function endWordDrag(drop){
   if(lp.active){
     lp.li.classList.remove("lifted"); lp.ghost && lp.ghost.remove();
     document.querySelectorAll("#moveTiles .hover").forEach(t=>t.classList.remove("hover"));
-    if(drop) moveTo(drop.dataset.move);   // sinon la feuille reste ouverte : on peut toucher un dossier
+    // Lâcher sur un dossier range le mot ; lâcher ailleurs referme simplement le panneau.
+    if(drop) moveTo(drop.dataset.move); else closeMoveSheet();
   }
   lp=null;
 }
@@ -985,9 +986,22 @@ document.addEventListener("pointermove",ev=>{
   document.querySelectorAll("#moveTiles [data-move]").forEach(x=>x.classList.toggle("hover", x===t));
 });
 document.addEventListener("pointerup",ev=>{ if(lp && ev.pointerId===lp.pid) endWordDrag(lp.active ? tileAt(ev.clientX,ev.clientY) : null); });
-document.addEventListener("pointercancel",ev=>{ if(lp && ev.pointerId===lp.pid) endWordDrag(null); });
+// Sur iPhone, Safari peut annuler le « pointeur » en plein glisser : on continue alors avec les
+// événements tactiles (touchmove / touchend), qui eux arrivent toujours.
+document.addEventListener("pointercancel",ev=>{ if(lp && ev.pointerId===lp.pid && !(lp.touch && lp.active)) endWordDrag(null); });
+function dragTouchAt(t){
+  if(!t) return; lp.x=t.clientX; lp.y=t.clientY; placeGhost(lp.x,lp.y);
+  const tile=tileAt(lp.x,lp.y);
+  document.querySelectorAll("#moveTiles [data-move]").forEach(x=>x.classList.toggle("hover", x===tile));
+}
+document.addEventListener("touchend",ev=>{
+  if(!lp || !lp.active) return;
+  const t=ev.changedTouches && ev.changedTouches[0];
+  endWordDrag(t ? tileAt(t.clientX,t.clientY) : null);
+});
+document.addEventListener("touchcancel",()=>{ if(lp && lp.active) endWordDrag(null); });
 // Pendant un glisser, la page ne doit pas défiler.
-document.addEventListener("touchmove",ev=>{ if(lp && lp.active) ev.preventDefault(); },{passive:false});
+document.addEventListener("touchmove",ev=>{ if(lp && lp.active){ ev.preventDefault(); dragTouchAt(ev.touches[0]); } },{passive:false});
 document.addEventListener("contextmenu",ev=>{ if(lp) ev.preventDefault(); });
 $("#search").addEventListener("input",render);
 document.querySelectorAll("[data-filter]").forEach(b=>b.addEventListener("click",()=>{
