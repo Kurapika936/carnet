@@ -146,6 +146,16 @@ button.chip.fchip:hover{background:var(--blue-soft)}
 .tile.hover{background:var(--blue);color:var(--card);border-color:var(--blue);transform:scale(1.05)}
 .tile.add{color:var(--blue)}
 @media (prefers-reduced-motion:reduce){.entry.lifted,.tile.hover{transition:none;transform:none}}
+.sortSheet{max-height:85vh;overflow-y:auto}
+.sortBody{display:flex;flex-direction:column;gap:12px}
+.sortIntro{margin:0;font-size:14px;color:var(--muted)}
+.sortCheck{flex-direction:row;align-items:center;gap:8px;text-transform:none;letter-spacing:0;font-weight:400;font-size:14px;color:var(--ink)}
+.sortPreview{display:flex;flex-direction:column;gap:8px}
+.sortGroup{border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:var(--paper)}
+.sortGroup h3{margin:0 0 4px;font-size:15px;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.sortGroup .new{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;background:var(--hl);color:var(--hl-ink);border-radius:999px;padding:1px 7px}
+.sortGroup .cnt{font-size:13px;font-weight:400;color:var(--muted)}
+.sortGroup p{margin:0;font-size:14px;color:var(--muted);overflow-wrap:anywhere}
 .switchRow{display:flex;align-items:center;gap:12px;background:none;border:0;padding:2px 0;font:inherit;font-size:15px;color:var(--ink);cursor:pointer;text-align:left;justify-self:start}
 .switchRow .track{flex:none;width:46px;height:28px;border-radius:999px;background:var(--line);position:relative;transition:background .2s}
 .switchRow .track::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:var(--card);box-shadow:0 1px 3px rgba(0,0,0,.25);transition:transform .2s}
@@ -348,7 +358,11 @@ button.chip{cursor:pointer}
           <button type="button" data-filter="done" aria-pressed="false">Acquis</button>
         </div>
       </div>
-      <div class="selRow"><span class="spacer"></span><button class="btn ghost small" type="button" id="selBtn">☑️ Sélectionner</button></div>
+      <div class="selRow">
+        <button class="btn ghost small" type="button" id="sortBtn">✨ Trier</button>
+        <button class="btn ghost small" type="button" id="undoSortBtn" hidden>↩︎ Annuler le tri</button>
+        <span class="spacer"></span><button class="btn ghost small" type="button" id="selBtn">☑️ Sélectionner</button>
+      </div>
       <ul class="list" id="list"></ul>
       <div class="empty" id="empty">
         <div><strong>Ton carnet est vide.</strong> Traduis un mot dans l'onglet 🌐 Traduire, puis touche « Ajouter au carnet ». Il apparaîtra ici, comme ceci :</div>
@@ -442,6 +456,22 @@ button.chip{cursor:pointer}
   <span id="selCount">0 sélectionné</span><span class="spacer"></span>
   <button class="btn ghost" type="button" id="selCancel">Annuler</button>
   <button class="btn" type="button" id="selMove">📁 Ranger</button>
+</div>
+<div class="sheet sortSheet" id="sortSheet" hidden role="dialog" aria-labelledby="sortTitle">
+  <div class="sheetHead"><span id="sortTitle">✨ Tri automatique</span><button class="icon" type="button" id="sortClose" aria-label="Fermer">✕</button></div>
+  <div id="sortSetup" class="sortBody">
+    <p class="sortIntro">Claude range tes mots dans tes dossiers et peut en créer de nouveaux. Tu vois le résultat avant que rien ne change.</p>
+    <label for="sortHint">Consignes (facultatif)
+      <input type="text" id="sortHint" maxlength="300" autocapitalize="sentences" placeholder="ex. crée un dossier Conjugaison pour les verbes">
+    </label>
+    <label class="sortCheck" for="sortAll"><input type="checkbox" id="sortAll" checked> Retrier aussi les mots déjà rangés</label>
+    <div class="row"><span class="lookup" id="sortStatus"></span><span class="spacer"></span><button class="btn" type="button" id="sortRun">Lancer le tri</button></div>
+  </div>
+  <div id="sortResult" class="sortBody" hidden>
+    <p class="sortIntro" id="sortSummary"></p>
+    <div class="sortPreview" id="sortPreview"></div>
+    <div class="row"><span class="spacer"></span><button class="btn ghost" type="button" id="sortBack">Annuler</button><button class="btn" type="button" id="sortApply">Appliquer</button></div>
+  </div>
 </div>
 <div class="sheet" id="moveSheet" hidden role="dialog" aria-labelledby="moveTitle">
   <div class="sheetHead"><span id="moveTitle">Ranger dans…</span><button class="icon" type="button" id="moveClose" aria-label="Fermer">✕</button></div>
@@ -913,6 +943,96 @@ $("#selBtn").addEventListener("click",()=>setSelecting(!selecting));
 $("#selCancel").addEventListener("click",()=>setSelecting(false));
 $("#selMove").addEventListener("click",()=>{ if(selected.size) openMoveSheet([...selected]); });
 
+// ---------- Tri automatique par Claude ----------
+let sortPlan=null, sortUndo=null;
+function openSortSheet(){
+  if(!canTranslate()){ toast("Configure d'abord le relais dans les Réglages."); return; }
+  if(!entries.length){ toast("Ton carnet est vide."); return; }
+  closeMoveSheet();
+  $("#sortSetup").hidden=false; $("#sortResult").hidden=true; $("#sortStatus").textContent=""; $("#sortRun").disabled=false;
+  $("#sortSheet").hidden=false;
+}
+function closeSortSheet(){ $("#sortSheet").hidden=true; sortPlan=null; }
+$("#sortBtn").addEventListener("click",openSortSheet);
+$("#sortClose").addEventListener("click",closeSortSheet);
+$("#sortBack").addEventListener("click",closeSortSheet);
+$("#sortRun").addEventListener("click",async()=>{
+  const all=$("#sortAll").checked, hint=$("#sortHint").value.trim();
+  const words = entries.filter(e => all || !folderById(e.folder));
+  if(!words.length){ $("#sortStatus").textContent="Tous tes mots sont déjà rangés. Coche « Retrier aussi… » pour tout revoir."; return; }
+  const btn=$("#sortRun"); btn.disabled=true;
+  // Plusieurs envois si le carnet est grand ; les dossiers créés à une étape servent aux suivantes.
+  let known = liveFolders().map(f=>({name:f.name, emoji:f.emoji||""}));
+  const created=[], assign=new Map(), CH=150;
+  try{
+    for(let i=0;i<words.length;i+=CH){
+      const part=words.slice(i,i+CH);
+      $("#sortStatus").textContent = words.length>CH ? `Claude trie… (${Math.min(i+CH,words.length)}/${words.length})` : "Claude trie tes mots…";
+      const r = await callRelay(settings,{sortWords:true, hint, folders:known, words:part.map(e=>({en:e.en, fr:e.fr, note:e.note||""}))});
+      if(!Array.isArray(r.assign)) throw new Error("Le relais n'est pas à jour : recolle son nouveau code dans Cloudflare.");
+      for(const f of (r.newFolders||[])) if(!known.some(k=>k.name.toLowerCase()===f.name.toLowerCase())){ known.push(f); created.push(f); }
+      for(const [idx,name] of r.assign) if(part[idx]) assign.set(part[idx].id, name);
+    }
+  }catch(err){
+    const m = /Rien à traduire/.test(err.message) ? "Le relais n'est pas à jour : recolle son nouveau code dans Cloudflare." : err.message;
+    $("#sortStatus").textContent="✗ "+m; btn.disabled=false; return;
+  }
+  btn.disabled=false; $("#sortStatus").textContent="";
+  sortPlan={assign, created, known};
+  showSortPreview();
+});
+function showSortPreview(){
+  const {assign, created, known}=sortPlan;
+  const groups=new Map();
+  let moved=0;
+  for(const e of entries){
+    const name=assign.get(e.id); if(!name) continue;
+    const cur=folderById(e.folder);
+    const changes = !cur || cur.name.toLowerCase()!==name.toLowerCase();
+    if(changes) moved++;
+    if(!groups.has(name)) groups.set(name,{total:0, movedWords:[]});
+    const g=groups.get(name); g.total++; if(changes) g.movedWords.push(e.origin==="fr"?e.fr:e.en);
+  }
+  const isNew = n => created.some(c=>c.name===n);
+  const emojiOf = n => (known.find(k=>k.name===n)||{}).emoji || "📁";
+  const order=[...groups.entries()].sort((a,b)=>b[1].total-a[1].total);
+  $("#sortSummary").textContent = moved
+    ? `${moved} mot${moved>1?"s":""} changeraient de dossier${created.length?`, et ${created.length} nouveau${created.length>1?"x":""} dossier${created.length>1?"s":""} serai${created.length>1?"ent":"t"} créé${created.length>1?"s":""}`:""}. Vérifie, puis touche Appliquer.`
+    : "Claude ne propose aucun changement : tes mots sont déjà bien rangés.";
+  $("#sortPreview").innerHTML = order.map(([name,g])=>`<div class="sortGroup">
+      <h3>${esc(emojiOf(name))} ${esc(name)} ${isNew(name)?'<span class="new">nouveau</span>':""}<span class="cnt">· ${g.total} mot${g.total>1?"s":""}${g.movedWords.length?` (dont ${g.movedWords.length} déplacé${g.movedWords.length>1?"s":""})`:""}</span></h3>
+      ${g.movedWords.length?`<p>${g.movedWords.slice(0,8).map(esc).join(" · ")}${g.movedWords.length>8?` · +${g.movedWords.length-8}`:""}</p>`:""}
+    </div>`).join("");
+  $("#sortApply").disabled = !moved;
+  $("#sortSetup").hidden=true; $("#sortResult").hidden=false;
+}
+$("#sortApply").addEventListener("click",()=>{
+  if(!sortPlan) return;
+  const {assign, created}=sortPlan;
+  const prev={}, createdIds=[];
+  for(const c of created){
+    const have=liveFolders().find(f=>f.name.toLowerCase()===c.name.toLowerCase());
+    if(!have){ const f=addFolder(c.name, c.emoji||"📁"); createdIds.push(f.id); }
+  }
+  const byName = n => liveFolders().find(f=>f.name.toLowerCase()===n.toLowerCase());
+  let n=0;
+  for(const e of entries){
+    const name=assign.get(e.id); if(!name) continue;
+    const f=byName(name); if(!f || e.folder===f.id) continue;
+    prev[e.id]=e.folder||""; e.folder=f.id; n++;
+  }
+  save(); sortUndo={prev, createdIds};
+  closeSortSheet(); curFolder="all"; render();
+  $("#undoSortBtn").hidden=false;
+  toast(`Tri appliqué : ${n} mot${n>1?"s":""} rangé${n>1?"s":""}${createdIds.length?`, ${createdIds.length} dossier${createdIds.length>1?"s":""} créé${createdIds.length>1?"s":""}`:""}`);
+});
+$("#undoSortBtn").addEventListener("click",()=>{
+  if(!sortUndo) return;
+  for(const id of sortUndo.createdIds) deleteFolder(id);
+  for(const e of entries) if(e.id in sortUndo.prev) e.folder=sortUndo.prev[e.id];
+  save(); sortUndo=null; $("#undoSortBtn").hidden=true; render(); toast("Tri annulé");
+});
+
 let moveIds=[];
 function openMoveSheet(ids){
   moveIds=ids;
@@ -1129,7 +1249,7 @@ $("#addForm").addEventListener("submit",async ev=>{
 
 // ---------- Tabs ----------
 function showTab(t){
-  if(t!=="review"){ if(typeof selecting!=="undefined" && selecting) setSelecting(false); if(typeof closeMoveSheet==="function") closeMoveSheet(); }
+  if(t!=="review"){ if(typeof selecting!=="undefined" && selecting) setSelecting(false); if(typeof closeMoveSheet==="function") closeMoveSheet(); if(typeof closeSortSheet==="function") closeSortSheet(); }
   document.querySelectorAll("[data-tab]").forEach(x=>x.setAttribute("aria-selected",x.dataset.tab===t));
   ["list","review","backup"].forEach(v=>$("#view-"+v).hidden = v!==t);
   if(t==="review" && revMode==="cards") startDeck();

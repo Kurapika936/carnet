@@ -114,6 +114,43 @@ async function translateClaude(env, { text, source, target, context, folders }) 
   };
 }
 
+// ---------- Tri automatique des mots dans des dossiers (Claude) ----------
+async function sortWithClaude(env, words, folders, hint) {
+  const system = `You organise the vocabulary notebook of a French speaker who is learning English into topic folders.
+Existing folders (name and emoji): ${JSON.stringify(folders)}
+The user's wishes: ${hint ? JSON.stringify(hint) : "(none)"}
+Rules:
+- Put EVERY word into exactly one folder.
+- Prefer existing folders. Create a new folder only if the user asked for it, or if at least 3 words clearly share a topic that no existing folder covers. At most 6 new folders.
+- New folder names: short, in French, capitalised (e.g. "Conjugaison", "Cuisine"), each with one fitting emoji.
+- Grammar items (verb tenses, conjugated or irregular verb forms, auxiliaries) belong in a grammar folder such as "Conjugaison" when one exists or is requested.
+- Use a catch-all folder like "Divers" only for words that fit nowhere else.
+- Reply with ONLY a JSON object, no other text:
+{"new_folders":[{"name":"...","emoji":"..."}],"assign":[[0,"Folder name"],[1,"Folder name"]]}
+where each number is the word's index in the list below and each folder name is copied exactly from the existing or new folders.`;
+  const list = words.map((w, i) => `${i}. ${w.en} = ${w.fr}${w.note ? " (" + w.note + ")" : ""}`).join("\n");
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: { "x-api-key": env.ANTHROPIC_KEY.trim(), "anthropic-version": "2023-06-01", "content-type": "application/json" },
+    body: JSON.stringify({ model: (env.CLAUDE_MODEL || DEFAULT_MODEL).trim(), max_tokens: 8000, system, messages: [{ role: "user", content: "Words:\n" + list }] }),
+  });
+  if (!res.ok) {
+    let msg = ""; try { msg = (await res.json())?.error?.message || ""; } catch {}
+    throw new Error(res.status === 401 ? "clé Claude refusée" : /credit balance/i.test(msg) ? "crédit Claude épuisé"
+      : res.status === 429 ? "trop de demandes d'affilée" : res.status >= 500 ? "Claude est surchargé" : `erreur Claude ${res.status}`);
+  }
+  const data = await res.json();
+  const j = parseJsonObject((data?.content || []).map(c => c.text || "").join(""));
+  const str = (v, n) => String(v ?? "").trim().slice(0, n);
+  const newFolders = (Array.isArray(j.new_folders) ? j.new_folders : []).slice(0, 6)
+    .map(f => ({ name: str(f?.name, 40), emoji: str(f?.emoji, 8) })).filter(f => f.name);
+  const valid = new Set([...folders.map(f => f.name), ...newFolders.map(f => f.name)]);
+  const assign = (Array.isArray(j.assign) ? j.assign : [])
+    .filter(a => Array.isArray(a) && Number.isInteger(a[0]) && a[0] >= 0 && a[0] < words.length && valid.has(str(a[1], 40)))
+    .map(a => [a[0], str(a[1], 40)]);
+  return { newFolders, assign };
+}
+
 // ---------- Traduction avec DeepL ----------
 async function translateDeepL(env, { text, source, target, context }) {
   const host = env.DEEPL_KEY.trim().endsWith(":fx") ? "https://api-free.deepl.com" : "https://api.deepl.com";
@@ -173,6 +210,18 @@ export default {
       const entries = await mergeKey(env, KEY, incoming);
       const folders = await mergeKey(env, FKEY, incomingF);
       return reply(200, { entries, folders, serverTime: Date.now() });
+    }
+
+    // ---------- Tri automatique ----------
+    if (body && body.sortWords) {
+      if (!env.ANTHROPIC_KEY) return reply(500, { error: "config", message: "Le tri automatique a besoin de la clé Claude (ANTHROPIC_KEY)." });
+      const words = (Array.isArray(body.words) ? body.words : []).slice(0, 400)
+        .map(w => ({ en: String(w?.en || "").slice(0, 200), fr: String(w?.fr || "").slice(0, 200), note: String(w?.note || "").slice(0, 100) }));
+      const folders = (Array.isArray(body.folders) ? body.folders : []).slice(0, 50)
+        .map(f => ({ name: String(f?.name || "").slice(0, 40), emoji: String(f?.emoji || "").slice(0, 8) })).filter(f => f.name);
+      if (!words.length) return reply(400, { error: "empty", message: "Aucun mot à trier." });
+      try { return reply(200, await sortWithClaude(env, words, folders, String(body.hint || "").slice(0, 300))); }
+      catch (e) { return reply(502, { error: "claude", message: "Tri impossible : " + (e.message || "Claude indisponible") + "." }); }
     }
 
     // ---------- Traduction ----------
