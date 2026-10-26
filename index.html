@@ -188,7 +188,7 @@ input:focus-visible,textarea:focus-visible,button:focus-visible,a:focus-visible{
 .btn:disabled{opacity:.5}
 .spacer{flex:1}
 
-.tabs{display:grid;grid-template-columns:repeat(3,1fr);border-bottom:1px solid var(--line);position:sticky;top:env(safe-area-inset-top);background:var(--paper);z-index:2}
+.tabs{display:grid;grid-template-columns:repeat(4,1fr);border-bottom:1px solid var(--line);position:sticky;top:env(safe-area-inset-top);background:var(--paper);z-index:2}
 /* Opaque strip behind the iPhone status bar so content scrolls under it cleanly */
 body::before{content:"";position:fixed;left:0;right:0;top:0;height:env(safe-area-inset-top);background:var(--paper);z-index:3}
 .tabs button{font:inherit;font-family:var(--f-display);font-weight:600;font-size:17px;background:none;border:0;border-bottom:3px solid transparent;color:var(--muted);padding:12px 2px;cursor:pointer;margin-bottom:-1px;white-space:nowrap;display:flex;align-items:center;justify-content:center;gap:5px;min-width:0}
@@ -196,7 +196,13 @@ body::before{content:"";position:fixed;left:0;right:0;top:0;height:env(safe-area
 .tabs .emo{font-size:17px}
 .tabs .count{font-family:var(--f-body);font-size:12px;font-weight:700;color:var(--muted);background:var(--blue-soft);border-radius:999px;padding:1px 7px;font-variant-numeric:tabular-nums}
 .tabs button[aria-selected=true] .count{color:var(--blue)}
-@media (max-width:360px){.tabs button{font-size:15px;gap:3px}.tabs .count{padding:1px 5px}}
+.tabs .lbl{display:inline-flex;align-items:center;gap:5px}
+@media (max-width:600px){
+  .tabs button{flex-direction:column;gap:2px;font-size:13px;padding:8px 2px 7px}
+  .tabs .emo{font-size:22px;line-height:1.1}
+  .tabs .lbl{gap:3px}
+  .tabs .count{font-size:11px;padding:0 5px}
+}
 
 .view{display:flex;flex-direction:column;gap:14px}
 .tools{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
@@ -268,6 +274,41 @@ button.chip{cursor:pointer}
 .backup p{margin:0;color:var(--muted);font-size:15px}
 .stat{font-variant-numeric:tabular-nums;color:var(--ink);font-weight:700}
 
+/* Prof : discussion et cours */
+.chatLog{display:flex;flex-direction:column;gap:12px}
+.msg{max-width:88%;padding:10px 14px;border-radius:18px;overflow-wrap:anywhere;font-size:16px;line-height:1.5}
+.msg.user{align-self:flex-end;background:var(--blue);color:var(--card);border-bottom-right-radius:6px;white-space:pre-wrap}
+.msg.bot{align-self:flex-start;background:var(--card);border:1px solid var(--line);border-bottom-left-radius:6px}
+.msg.err{align-self:center;background:transparent;color:var(--danger);font-size:14px;text-align:center}
+.md > :first-child{margin-top:0}.md > :last-child{margin-bottom:0}
+.md p{margin:0 0 8px}.md ul,.md ol{margin:0 0 8px;padding-left:22px}.md li{margin:2px 0}
+.md h4{font-family:var(--f-display);font-size:16px;margin:12px 0 4px;color:var(--blue)}
+.md blockquote{margin:0 0 8px;padding:4px 10px;border-left:3px solid var(--blue);color:var(--muted)}
+.md em{color:var(--ink)}
+.md table{border-collapse:collapse;margin:0 0 8px;font-size:14px;display:block;overflow-x:auto}
+.md td,.md th{border:1px solid var(--line);padding:4px 8px;text-align:left}
+.md code{font-size:.92em;background:var(--blue-soft);border-radius:5px;padding:0 4px}
+.botActs{align-self:flex-start;display:flex;gap:8px;flex-wrap:wrap;margin-top:-4px}
+.typing{display:inline-flex;gap:4px;padding:4px 0}
+.typing i{width:7px;height:7px;border-radius:50%;background:var(--muted);animation:blink 1.2s infinite both}
+.typing i:nth-child(2){animation-delay:.2s}.typing i:nth-child(3){animation-delay:.4s}
+@keyframes blink{0%,80%,100%{opacity:.25}40%{opacity:1}}
+.lessonCard{align-self:stretch;background:var(--blue-soft);border-radius:16px;padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+.lessonCard h3,.lessonRead h3{margin:0;font-family:var(--f-display);font-size:20px;line-height:1.25;display:flex;gap:8px;align-items:flex-start}
+.lessonCard .btn.saved{background:var(--ok-soft);color:var(--ok)}
+.chatForm{display:flex;gap:8px;align-items:flex-end;position:sticky;bottom:0;background:var(--paper);padding:8px 0 calc(8px + env(safe-area-inset-bottom));z-index:1}
+.chatForm textarea{flex:1;min-height:46px;max-height:40vh;resize:none;border-radius:22px;padding:11px 16px;background:var(--card);line-height:1.4}
+.chatForm .btn{flex:none;width:46px;height:46px;border-radius:50%;padding:0;font-size:20px;display:grid;place-items:center}
+.chatTop{display:flex;justify-content:flex-end}
+.suggest{display:flex;flex-direction:column;gap:8px;align-items:flex-start}
+.suggest button{font:inherit;font-size:15px;text-align:left;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:14px;padding:10px 14px;cursor:pointer}
+.lessonList{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.lessonList button{width:100%;font:inherit;text-align:left;display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;color:var(--ink);cursor:pointer}
+.lessonList .le{font-size:26px;line-height:1;flex:none}
+.lessonList .lt{flex:1;min-width:0;font-weight:700;font-size:17px;overflow-wrap:anywhere}
+.lessonList .ld{font-size:13px;color:var(--muted);flex:none}
+.lessonRead{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:12px}
+.lessonRead .md{font-size:16px}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom));background:var(--ink);color:var(--paper);padding:10px 16px;border-radius:12px;font-size:14px;z-index:5;max-width:calc(100% - 32px)}
 </style>
 </head>
@@ -283,9 +324,10 @@ button.chip{cursor:pointer}
   <p class="notice" id="notice" hidden></p>
 
   <div class="tabs" role="tablist">
-    <button role="tab" data-tab="list" aria-selected="true"><span class="emo" aria-hidden="true">🌐</span>Traduire</button>
-    <button role="tab" data-tab="review" aria-selected="false"><span class="emo" aria-hidden="true">🧠</span>Réviser <span class="count" id="countTodo">0</span></button>
-    <button role="tab" data-tab="backup" aria-selected="false"><span class="emo" aria-hidden="true">⚙️</span>Réglages</button>
+    <button role="tab" data-tab="list" aria-selected="true"><span class="emo" aria-hidden="true">🌐</span><span class="lbl">Traduire</span></button>
+    <button role="tab" data-tab="review" aria-selected="false"><span class="emo" aria-hidden="true">🧠</span><span class="lbl">Réviser <span class="count" id="countTodo">0</span></span></button>
+    <button role="tab" data-tab="prof" aria-selected="false"><span class="emo" aria-hidden="true">🎓</span><span class="lbl">Prof</span></button>
+    <button role="tab" data-tab="backup" aria-selected="false"><span class="emo" aria-hidden="true">⚙️</span><span class="lbl">Réglages</span></button>
   </div>
 
   <!-- CARNET -->
@@ -387,6 +429,31 @@ button.chip{cursor:pointer}
     <div class="row" id="flashBtns"></div>
     <div class="progress" id="progress"></div>
     <p class="kbdHint"><kbd>←</kbd> à revoir · <kbd>Espace</kbd> retourner · <kbd>→</kbd> je savais</p>
+    </div>
+  </section>
+
+  <!-- PROF -->
+  <section class="view" id="view-prof" hidden>
+    <div class="seg modeSeg" role="group" aria-label="Prof">
+      <button type="button" data-pmode="chat" aria-pressed="true">💬 Discussion</button>
+      <button type="button" data-pmode="lessons" aria-pressed="false">📚 Mes cours <span class="count" id="countLessons">0</span></button>
+    </div>
+    <div class="view" id="profChat">
+      <div class="chatTop" id="chatTop" hidden><button type="button" class="btn ghost small" id="newChatBtn">🗑 Nouvelle discussion</button></div>
+      <div class="suggest" id="chatSuggest">
+        <button type="button">Quand utiliser le present perfect plutôt que le prétérit ?</button>
+        <button type="button">Quelle différence entre <i>make</i> et <i>do</i> ?</button>
+        <button type="button">Comment bien utiliser <i>since</i> et <i>for</i> ?</button>
+      </div>
+      <div class="chatLog" id="chatLog" aria-live="polite"></div>
+      <form class="chatForm" id="chatForm" autocomplete="off">
+        <textarea id="chatInput" rows="1" placeholder="Pose ta question…" enterkeyhint="send" aria-label="Ta question"></textarea>
+        <button class="btn" type="submit" id="chatSend" aria-label="Envoyer">➤</button>
+      </form>
+    </div>
+    <div class="view" id="profLessons" hidden>
+      <ul class="lessonList" id="lessonList"></ul>
+      <div class="lessonRead" id="lessonRead" hidden></div>
     </div>
   </section>
 
@@ -749,10 +816,11 @@ async function syncNow(manual){
   clearTimeout(syncTimer);
   syncing=true; setSyncStatus("synchronisation…"); $("#syncBtn") && ($("#syncBtn").disabled=true);
   try{
-    const data = await callRelay(settings,{sync:true, entries:localSnapshot(), folders:folders.map(f=>({...f}))});
+    const data = await callRelay(settings,{sync:true, entries:localSnapshot(), folders:folders.map(f=>({...f})), lessons:lessons.map(l=>({...l}))});
     syncOff="";
     // An older relay doesn't know about folders: keep them local until it's updated.
     const fChanged = Array.isArray(data.folders) ? applyRemoteFolders(data.folders) : false;
+    if(Array.isArray(data.lessons)) applyRemoteLessons(data.lessons);
     applyRemote(Array.isArray(data.entries)?data.entries:[]);
     if(fChanged) render();
     try{ localStorage.setItem(SYNCKEY,String(Date.now())); }catch(e){}
@@ -773,9 +841,9 @@ window.addEventListener("online",()=>scheduleSync(300));
 document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="visible") scheduleSync(300); });
 
 // ---------- Translation (via your Cloudflare relay → DeepL) ----------
-async function callRelay(s, body){
+async function callRelay(s, body, timeout=15000){
   if(!navigator.onLine) throw new Error("Pas de connexion internet.");
-  const ctrl=new AbortController(), timer=setTimeout(()=>ctrl.abort(),15000);
+  const ctrl=new AbortController(), timer=setTimeout(()=>ctrl.abort(),timeout);
   let res;
   try{
     res=await fetch(s.url,{method:"POST",headers:{"Content-Type":"application/json","X-App-Password":s.pw},body:JSON.stringify(body),signal:ctrl.signal});
@@ -1254,7 +1322,8 @@ $("#addForm").addEventListener("submit",async ev=>{
 function showTab(t){
   if(t!=="review"){ if(typeof selecting!=="undefined" && selecting) setSelecting(false); if(typeof closeMoveSheet==="function") closeMoveSheet(); if(typeof closeSortSheet==="function") closeSortSheet(); }
   document.querySelectorAll("[data-tab]").forEach(x=>x.setAttribute("aria-selected",x.dataset.tab===t));
-  ["list","review","backup"].forEach(v=>$("#view-"+v).hidden = v!==t);
+  ["list","review","prof","backup"].forEach(v=>$("#view-"+v).hidden = v!==t);
+  if(t==="prof") renderProf();
   if(t==="review" && revMode==="cards") startDeck();
   if(t==="backup"){ showLastBackup(); fillSettings(); $("#testResult").textContent=""; if(!syncing) syncStatusIdle(); }
   window.scrollTo(0,0);
@@ -1511,7 +1580,7 @@ function showLastBackup(){
 $("#exportBtn").addEventListener("click",async()=>{
   if(!entries.length) return toast("Le carnet est vide.");
   const d=new Date(), name=`carnet-anglais-${d.toISOString().slice(0,10)}.json`;
-  const blob=new Blob([JSON.stringify({app:"carnet-anglais",version:2,exportedAt:d.toISOString(),entries,folders:liveFolders()},null,2)],{type:"application/json"});
+  const blob=new Blob([JSON.stringify({app:"carnet-anglais",version:2,exportedAt:d.toISOString(),entries,folders:liveFolders(),lessons:liveLessons()},null,2)],{type:"application/json"});
   const file=new File([blob],name,{type:"application/json"});
   try{
     if(navigator.canShare && navigator.canShare({files:[file]})){ await navigator.share({files:[file],title:name}); }
@@ -1540,8 +1609,185 @@ $("#importFile").addEventListener("change",async ev=>{
       entries.push({id:uid(),en:String(e.en),fr:String(e.fr),note:String(e.note||""),exEn:String(e.exEn||""),exFr:String(e.exFr||""),tip:String(e.tip||""),folder:fmap[e.folder]||"",origin:e.origin==="fr"?"fr":"en",status:e.status==="learned"?"learned":"new",createdAt:+e.createdAt||Date.now()});
       added++;
     }
+    const titles=new Set(liveLessons().map(l=>l.title.toLowerCase()));
+    for(const l of (Array.isArray(data.lessons)?data.lessons:[])){
+      if(!l || l.deleted || !l.title || !l.body || titles.has(String(l.title).toLowerCase())) continue;
+      titles.add(String(l.title).toLowerCase());
+      lessons.push({id:uid(),title:String(l.title).slice(0,120),emoji:String(l.emoji||"📘").slice(0,16),body:String(l.body),createdAt:+l.createdAt||Date.now(),updatedAt:Date.now()}); added++;
+    }
+    persistLessons();
     save(); render(); toast(added?`${added} entrée(s) importée(s)`:"Rien de nouveau dans ce fichier");
   }catch(e){ toast("Ce fichier n'est pas une sauvegarde du carnet."); }
+});
+
+// ---------- Prof : discussion avec Claude et cours ----------
+const LESSONS_KEY="carnet-anglais-lessons", CHAT_KEY="carnet-anglais-chat";
+let lessons=[]; try{ lessons=JSON.parse(localStorage.getItem(LESSONS_KEY))||[]; }catch(e){}
+let chat=[]; try{ chat=JSON.parse(localStorage.getItem(CHAT_KEY))||[]; }catch(e){}
+let chatBusy=false, profMode="chat", openLessonId=null, confirmDelLesson=false, confirmNewChat=false;
+const liveLessons = () => lessons.filter(l=>!l.deleted).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+function persistLessons(){ try{ localStorage.setItem(LESSONS_KEY, JSON.stringify(lessons)); }catch(e){ toast("Impossible d'enregistrer le cours."); } }
+function persistChat(){ try{ localStorage.setItem(CHAT_KEY, JSON.stringify(chat.slice(-80))); }catch(e){} }
+function applyRemoteLessons(remote){
+  const merged = mergeLists(lessons.map(l=>({...l})), remote);
+  const remoteAt = new Map(remote.map(l=>[l.id,+l.updatedAt||0]));
+  const changed = JSON.stringify(merged.map(l=>[l.id,l.updatedAt]).sort()) !== JSON.stringify(lessons.map(l=>[l.id,l.updatedAt]).sort());
+  lessons = merged; persistLessons();
+  if(merged.some(l=>remoteAt.get(l.id)!==(+l.updatedAt||0))) syncAgain=true;
+  if(changed && !$("#view-prof").hidden) renderProf();
+}
+
+// Small, safe Markdown → HTML (text is escaped first).
+function inlineMd(t){
+  return esc(t)
+    .replace(/`([^`]+)`/g,"<code>$1</code>")
+    .replace(/\*\*(.+?)\*\*/g,"<strong>$1</strong>")
+    .replace(/~~(.+?)~~/g,"<s>$1</s>")
+    .replace(/(^|[^*\w])\*(?!\s)(.+?)\*(?!\w)/g,"$1<em>$2</em>")
+    .replace(/(^|[^\w])_(?!\s)(.+?)_(?!\w)/g,"$1<em>$2</em>");
+}
+function md(src){
+  const lines=String(src||"").replace(/\r/g,"").split("\n"), out=[];
+  let list=null, para=[], table=null;
+  const flushP=()=>{ if(para.length){ out.push("<p>"+para.map(inlineMd).join("<br>")+"</p>"); para=[]; } };
+  const flushL=()=>{ if(list){ out.push(`<${list.t}>`+list.items.map(i=>"<li>"+inlineMd(i)+"</li>").join("")+`</${list.t}>`); list=null; } };
+  const flushT=()=>{ if(table){ out.push("<table>"+table.map((r,i)=>"<tr>"+r.map(c=>i?`<td>${inlineMd(c)}</td>`:`<th>${inlineMd(c)}</th>`).join("")+"</tr>").join("")+"</table>"); table=null; } };
+  const flush=()=>{ flushP(); flushL(); flushT(); };
+  for(const raw of lines){
+    const l=raw.trimEnd(); let m;
+    if(!l.trim()){ flush(); continue; }
+    if(/^\s*\|.*\|\s*$/.test(l)){
+      flushP(); flushL();
+      if(/^\s*\|[\s:|-]+\|\s*$/.test(l)) continue;
+      (table=table||[]).push(l.trim().slice(1,-1).split("|").map(c=>c.trim())); continue;
+    }
+    flushT();
+    if((m=l.match(/^\s*#{1,6}\s+(.*)$/))){ flush(); out.push("<h4>"+inlineMd(m[1].replace(/\*\*/g,""))+"</h4>"); continue; }
+    if((m=l.match(/^\s*[-*•]\s+(.*)$/))){ flushP(); if(!list||list.t!=="ul"){ flushL(); list={t:"ul",items:[]}; } list.items.push(m[1]); continue; }
+    if((m=l.match(/^\s*\d+[.)]\s+(.*)$/))){ flushP(); if(!list||list.t!=="ol"){ flushL(); list={t:"ol",items:[]}; } list.items.push(m[1]); continue; }
+    if((m=l.match(/^\s*>\s?(.*)$/))){ flush(); out.push("<blockquote>"+inlineMd(m[1])+"</blockquote>"); continue; }
+    if(/^\s*(-{3,}|\*{3,})\s*$/.test(l)){ flush(); continue; }
+    flushL(); para.push(l.trim());
+  }
+  flush();
+  return out.join("");
+}
+
+function setProfMode(m){
+  profMode=m; openLessonId=null;
+  document.querySelectorAll("[data-pmode]").forEach(x=>x.setAttribute("aria-pressed",x.dataset.pmode===m));
+  renderProf(); window.scrollTo(0,0);
+}
+document.querySelectorAll("[data-pmode]").forEach(b=>b.addEventListener("click",()=>setProfMode(b.dataset.pmode)));
+
+function renderProf(){
+  $("#countLessons").textContent = liveLessons().length;
+  $("#profChat").hidden = profMode!=="chat"; $("#profLessons").hidden = profMode!=="lessons";
+  if(profMode==="chat") renderChat(); else renderLessons();
+}
+function lessonHtml(l){ return `<h3><span>${esc(l.emoji||"📘")}</span><span>${esc(l.title)}</span></h3><div class="md">${md(l.body)}</div>`; }
+function renderChat(){
+  const log=$("#chatLog");
+  $("#chatSuggest").hidden = chat.length>0 || chatBusy;
+  $("#chatTop").hidden = chat.length===0;
+  $("#newChatBtn").textContent = confirmNewChat ? "Effacer la discussion ?" : "🗑 Nouvelle discussion";
+  let h="";
+  chat.forEach((m,i)=>{
+    if(m.role==="user") h+=`<div class="msg user">${esc(m.text)}</div>`;
+    else if(m.role==="err") h+=`<div class="msg err">${esc(m.text)}</div>`;
+    else if(m.role==="lesson"){
+      const saved = m.savedId && lessons.some(l=>l.id===m.savedId && !l.deleted);
+      h+=`<div class="lessonCard">${lessonHtml(m)}<div class="row">
+        <button type="button" class="btn${saved?" saved":""}" data-addlesson="${i}" ${saved?"disabled":""}>${saved?"✓ Dans mes cours":"➕ Ajouter à mes cours"}</button></div></div>`;
+    }else{
+      h+=`<div class="msg bot md">${md(m.text)}</div>`;
+      const last = i===chat.length-1 || !chat.slice(i+1).some(x=>x.role==="lesson"||x.role==="user");
+      if(m.offer && last && !chatBusy) h+=`<div class="botActs"><button type="button" class="btn small" data-mklesson="${i}">📘 Oui, crée la leçon</button></div>`;
+    }
+  });
+  if(chatBusy) h+=`<div class="msg bot"><span class="typing" aria-label="Claude écrit"><i></i><i></i><i></i></span></div>`;
+  log.innerHTML=h;
+  $("#chatSend").disabled = chatBusy;
+}
+function scrollChatEnd(){ requestAnimationFrame(()=>window.scrollTo({top:document.body.scrollHeight})); }
+const relayOld = msg => /Rien à traduire|Aucun mot|Requête illisible/.test(msg) ? "Le relais n'est pas à jour : recolle son nouveau code dans Cloudflare." : msg;
+const chatPayload = upto => chat.slice(0, upto).filter(m=>m.role==="user"||m.role==="bot").slice(-24)
+  .map(m=>({role:m.role==="user"?"user":"assistant", content:m.text}));
+
+async function sendChat(text){
+  text=String(text||"").trim(); if(!text || chatBusy) return;
+  if(!canTranslate()){ toast("Configure d'abord le relais dans les Réglages."); return; }
+  confirmNewChat=false;
+  chat.push({role:"user", text}); persistChat();
+  $("#chatInput").value=""; autoGrow();
+  chatBusy=true; renderChat(); scrollChatEnd();
+  try{
+    const r = await callRelay(settings,{chat:true, messages:chatPayload(chat.length)},60000);
+    if(typeof r.reply!=="string") throw new Error("Rien à traduire");
+    chat.push({role:"bot", text:r.reply, offer:!!r.offer});
+  }catch(err){ chat.push({role:"err", text:relayOld(err.message)}); }
+  chatBusy=false; persistChat(); renderChat(); scrollChatEnd();
+}
+async function makeLesson(i){
+  if(chatBusy) return;
+  chatBusy=true; renderChat(); scrollChatEnd();
+  try{
+    const r = await callRelay(settings,{lesson:true, messages:chatPayload(i+1)},90000);
+    if(typeof r.body!=="string") throw new Error("Rien à traduire");
+    chat.push({role:"lesson", title:r.title||"Leçon", emoji:r.emoji||"📘", body:r.body});
+  }catch(err){ chat.push({role:"err", text:relayOld(err.message)}); }
+  chatBusy=false; persistChat(); renderChat(); scrollChatEnd();
+}
+$("#chatLog").addEventListener("click",ev=>{
+  const mk=ev.target.closest("[data-mklesson]"); if(mk){ makeLesson(+mk.dataset.mklesson); return; }
+  const add=ev.target.closest("[data-addlesson]");
+  if(add){
+    const m=chat[+add.dataset.addlesson]; if(!m || m.role!=="lesson") return;
+    const now=Date.now(), l={id:uid(), title:m.title, emoji:m.emoji, body:m.body, createdAt:now, updatedAt:now};
+    lessons.push(l); m.savedId=l.id; persistLessons(); persistChat(); scheduleSync();
+    $("#countLessons").textContent = liveLessons().length;
+    renderChat(); toast("Ajouté à tes cours 📚");
+  }
+});
+$("#chatSuggest").addEventListener("click",ev=>{ const b=ev.target.closest("button"); if(b) sendChat(b.textContent); });
+$("#chatForm").addEventListener("submit",ev=>{ ev.preventDefault(); sendChat($("#chatInput").value); });
+function autoGrow(){ const t=$("#chatInput"); t.style.height="auto"; t.style.height=Math.min(t.scrollHeight+2, innerHeight*0.4)+"px"; }
+$("#chatInput").addEventListener("input",autoGrow);
+$("#chatInput").addEventListener("keydown",ev=>{
+  if(ev.key==="Enter" && !ev.shiftKey && !ev.isComposing){ ev.preventDefault(); sendChat($("#chatInput").value); }
+});
+$("#newChatBtn").addEventListener("click",()=>{
+  if(chatBusy) return;
+  if(!confirmNewChat){ confirmNewChat=true; renderChat(); setTimeout(()=>{ if(confirmNewChat){ confirmNewChat=false; renderChat(); } },4000); return; }
+  confirmNewChat=false; chat=[]; persistChat(); renderChat();
+});
+
+function renderLessons(){
+  const list=$("#lessonList"), read=$("#lessonRead"), all=liveLessons();
+  const l = openLessonId && all.find(x=>x.id===openLessonId);
+  list.hidden=!!l; read.hidden=!l;
+  if(l){
+    read.innerHTML = `<div class="row"><button type="button" class="btn ghost small" data-lback>← Mes cours</button><span class="spacer"></span>
+      ${confirmDelLesson ? `<button type="button" class="btn ghost small" data-ldelno>Garder</button><button type="button" class="btn small" style="background:var(--danger)" data-ldelyes>Supprimer</button>`
+                         : `<button type="button" class="icon danger" data-ldel aria-label="Supprimer ce cours">🗑</button>`}</div>
+      ${lessonHtml(l)}`;
+    return;
+  }
+  list.innerHTML = all.length ? all.map(x=>`<li><button type="button" data-lopen="${esc(x.id)}"><span class="le">${esc(x.emoji||"📘")}</span><span class="lt">${esc(x.title)}</span>
+      <span class="ld">${new Date(x.createdAt||Date.now()).toLocaleDateString("fr-FR",{day:"numeric",month:"short"})}</span></button></li>`).join("")
+    : `<li class="empty"><strong>Aucun cours pour l'instant.</strong></li>`;
+}
+$("#profLessons").addEventListener("click",ev=>{
+  const t=ev.target.closest("button"); if(!t) return;
+  if(t.dataset.lopen){ openLessonId=t.dataset.lopen; confirmDelLesson=false; renderLessons(); window.scrollTo(0,0); }
+  else if("lback" in t.dataset){ openLessonId=null; confirmDelLesson=false; renderLessons(); }
+  else if("ldel" in t.dataset){ confirmDelLesson=true; renderLessons(); }
+  else if("ldelno" in t.dataset){ confirmDelLesson=false; renderLessons(); }
+  else if("ldelyes" in t.dataset){
+    const i=lessons.findIndex(x=>x.id===openLessonId);
+    if(i>=0){ lessons[i]={id:openLessonId, deleted:true, updatedAt:Date.now()}; persistLessons(); scheduleSync(); }
+    openLessonId=null; confirmDelLesson=false; renderProf(); toast("Cours supprimé");
+  }
 });
 
 // ---------- Offline ----------
@@ -1550,7 +1796,7 @@ $("#importFile").addEventListener("change",async ev=>{
 if("serviceWorker" in navigator){
   const hadController = !!navigator.serviceWorker.controller;
   let pendingReload = false;
-  const formIsEmpty = () => !["#enInput","#frInput","#noteInput"].some(s=>$(s).value.trim()) && !editingId;
+  const formIsEmpty = () => !["#enInput","#frInput","#noteInput","#chatInput"].some(s=>$(s).value.trim()) && !editingId && !chatBusy;
   navigator.serviceWorker.addEventListener("controllerchange",()=>{
     if(!hadController) return;            // first install: nothing to refresh
     if(formIsEmpty()) location.reload(); else pendingReload = true;

@@ -45,6 +45,7 @@ Quand le propriétaire écrit **« Rollback N »** (ex. « Rollback 30 »), reve
 5. Dire au propriétaire ce qu'il perd par rapport à la version d'avant, notamment :
    - avant v28 : plus de synchronisation entre appareils ;
    - avant v29 : plus de traduction par Claude (exemples, notes, variantes) ;
+   - avant v37 : plus d'onglet 🎓 Prof (les cours restent dans la base, ils réapparaissent en revenant à v37+) ;
    - avant v10 : ancienne organisation des onglets.
    Ses mots ne sont jamais touchés : ils sont dans le téléphone et dans la base Cloudflare, pas dans le code.
 6. Un rollback se défait par un autre rollback (« Rollback 31 » pour revenir à la version d'avant).

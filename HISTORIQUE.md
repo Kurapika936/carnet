@@ -35,5 +35,6 @@ Pour revenir à une version : écrire à Claude **« Rollback N »** (ex. « Rol
 | v34 | 20 oct. | Glisser-déposer : le panneau des dossiers se ferme en lâchant le mot ; geste plus fiable sur iPhone |
 | v35 | 21 oct. | Bouton ✨ Trier : Claude range tous les mots dans des dossiers (et en crée si besoin), avec aperçu et annulation |
 | v36 | 26 oct. | Croix ✕ dans « Rechercher » pour effacer la recherche |
+| v37 | 26 oct. | Onglet 🎓 Prof : discussion avec Claude, leçons à ajouter dans 📚 Mes cours (synchronisés) |
 
 (Les numéros manquants, comme v23 et v27, étaient des étapes intermédiaires jamais publiées.)
