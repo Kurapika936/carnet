@@ -277,6 +277,11 @@ button.chip{cursor:pointer}
 /* Prof : discussion et cours */
 .chatLog{display:flex;flex-direction:column;gap:12px}
 .msg{max-width:88%;padding:10px 14px;border-radius:18px;overflow-wrap:anywhere;font-size:16px;line-height:1.5}
+.askBtn{align-self:flex-start;font:inherit;font-size:14px;font-weight:600;color:var(--blue);background:var(--card);border:1px solid var(--line);border-radius:999px;padding:7px 14px;cursor:pointer}
+.askBox{display:flex;gap:8px;align-items:flex-end}
+.askBox textarea{flex:1;min-height:44px;max-height:30vh;resize:none;border-radius:22px;padding:10px 16px;background:var(--card);line-height:1.4}
+.askBox .btn{flex:none;width:44px;height:44px;border-radius:50%;padding:0;font-size:19px;display:grid;place-items:center}
+.msg .qctx{display:block;font-size:14px;opacity:.85;border-left:3px solid currentColor;padding-left:8px;margin-bottom:6px}
 .msg.user{align-self:flex-end;background:var(--blue);color:var(--card);border-bottom-right-radius:6px;white-space:pre-wrap}
 .msg.bot{align-self:flex-start;background:var(--card);border:1px solid var(--line);border-bottom-left-radius:6px}
 .msg.err{align-self:center;background:transparent;color:var(--danger);font-size:14px;text-align:center}
@@ -360,6 +365,11 @@ button.chip{cursor:pointer}
         </div>
         <p class="rtip" id="resultTip" hidden></p>
         <p class="rengine" id="resultEngine" hidden></p>
+        <button type="button" class="askBtn" id="askBtn">❓ Poser une question sur cette traduction</button>
+        <div class="askBox" id="askBox" hidden>
+          <textarea id="askInput" rows="1" placeholder="Ta question" enterkeyhint="send" aria-label="Ta question sur cette traduction" autocapitalize="sentences"></textarea>
+          <button class="btn" type="button" id="askSend" aria-label="Envoyer la question">➤</button>
+        </div>
       </div>
       <button type="button" class="switchRow" id="ownSwitch" role="switch" aria-checked="false">
         <span class="track" aria-hidden="true"></span><span id="ownLabel">✏️ Ma propre traduction</span>
@@ -1208,6 +1218,7 @@ function updateSaveLabel(){
   else if(autoMode()) btn.textContent = pendingValid() ? "Ajouter au carnet" : "Traduire";
   else btn.textContent="Ajouter au carnet";
 }
+let askFor=null;
 function showResult(){
   const ok = autoMode() && pendingValid();
   $("#result").hidden = !ok;
@@ -1229,6 +1240,7 @@ function showResult(){
     $("#resultTip").textContent = pending.tip ? "💡 "+pending.tip : "";
     $("#resultEngine").hidden = !pending.fallback;
     $("#resultEngine").textContent = pending.fallback ? "Traduit avec DeepL ("+(pending.reason||"Claude indisponible")+")" : "";
+    if(askFor!==pending.text+"|"+pending.src){ askFor=null; $("#askBox").hidden=true; $("#askBtn").hidden=false; }
   }
   updateSaveLabel();
   if(typeof updateClearBtns==="function") updateClearBtns();
@@ -1693,7 +1705,7 @@ function renderChat(){
   $("#newChatBtn").textContent = confirmNewChat ? "Effacer la discussion ?" : "🗑 Nouvelle discussion";
   let h="";
   chat.forEach((m,i)=>{
-    if(m.role==="user") h+=`<div class="msg user">${esc(m.text)}</div>`;
+    if(m.role==="user") h+=`<div class="msg user">${m.ctx?`<span class="qctx">${esc(m.ctx.src)} → ${esc(m.ctx.tr)}</span>`:""}${esc(m.text)}</div>`;
     else if(m.role==="err") h+=`<div class="msg err">${esc(m.text)}</div>`;
     else if(m.role==="lesson"){
       const saved = m.savedId && lessons.some(l=>l.id===m.savedId && !l.deleted);
@@ -1712,13 +1724,38 @@ function renderChat(){
 function scrollChatEnd(){ requestAnimationFrame(()=>window.scrollTo({top:document.body.scrollHeight})); }
 const relayOld = msg => /Rien à traduire|Aucun mot|Requête illisible/.test(msg) ? "Le relais n'est pas à jour : recolle son nouveau code dans Cloudflare." : msg;
 const chatPayload = upto => chat.slice(0, upto).filter(m=>m.role==="user"||m.role==="bot").slice(-24)
-  .map(m=>({role:m.role==="user"?"user":"assistant", content:m.text}));
+  .map(m=>({role:m.role==="user"?"user":"assistant", content:m.ctx ? ctxPrompt(m.ctx)+"\n\nMa question : "+m.text : m.text}));
+function ctxPrompt(c){
+  const L = c.from==="fr" ? ["français","anglais"] : ["anglais","français"];
+  return `À propos de cette traduction proposée par l'app, du ${L[0]} vers l'${L[1]} :\n« ${c.src} » → « ${c.tr} »`
+    + (c.alts&&c.alts.length ? `\nAutres possibilités proposées : ${c.alts.map(a=>"« "+a+" »").join(", ")}` : "")
+    + (c.note ? `\nContexte donné : ${c.note}` : "");
+}
+// Question about the current translation: it goes to the Prof discussion, with the translation as context.
+function askAboutTranslation(){
+  const q=$("#askInput").value.trim(); if(!q || !pending) return;
+  if(chatBusy){ toast("Claude répond encore à ta question précédente."); return; }
+  const ctx={src:pending.src, tr:pending.text, from:origin, alts:pending.alts||[], note:pending.ctx||""};
+  $("#askInput").value=""; $("#askBox").hidden=true; $("#askBtn").hidden=false; askFor=null;
+  if(profMode!=="chat") setProfMode("chat");
+  showTab("prof");
+  sendChat(q, ctx);
+}
+$("#askBtn").addEventListener("click",()=>{
+  askFor=pending ? pending.text+"|"+pending.src : null;
+  $("#askBtn").hidden=true; $("#askBox").hidden=false; $("#askInput").focus();
+});
+$("#askSend").addEventListener("click",askAboutTranslation);
+$("#askInput").addEventListener("keydown",ev=>{
+  if(ev.key==="Enter" && !ev.shiftKey && !ev.isComposing){ ev.preventDefault(); askAboutTranslation(); }
+});
+$("#askInput").addEventListener("input",()=>{ const t=$("#askInput"); t.style.height="auto"; t.style.height=Math.min(t.scrollHeight+2, innerHeight*0.3)+"px"; });
 
-async function sendChat(text){
+async function sendChat(text, ctx){
   text=String(text||"").trim(); if(!text || chatBusy) return;
   if(!canTranslate()){ toast("Configure d'abord le relais dans les Réglages."); return; }
   confirmNewChat=false;
-  chat.push({role:"user", text}); persistChat();
+  chat.push(ctx ? {role:"user", text, ctx} : {role:"user", text}); persistChat();
   $("#chatInput").value=""; autoGrow();
   chatBusy=true; renderChat(); scrollChatEnd();
   try{
@@ -1796,7 +1833,7 @@ $("#profLessons").addEventListener("click",ev=>{
 if("serviceWorker" in navigator){
   const hadController = !!navigator.serviceWorker.controller;
   let pendingReload = false;
-  const formIsEmpty = () => !["#enInput","#frInput","#noteInput","#chatInput"].some(s=>$(s).value.trim()) && !editingId && !chatBusy;
+  const formIsEmpty = () => !["#enInput","#frInput","#noteInput","#chatInput","#askInput"].some(s=>$(s).value.trim()) && !editingId && !chatBusy;
   navigator.serviceWorker.addEventListener("controllerchange",()=>{
     if(!hadController) return;            // first install: nothing to refresh
     if(formIsEmpty()) location.reload(); else pendingReload = true;
