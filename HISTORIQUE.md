@@ -37,5 +37,6 @@ Pour revenir à une version : écrire à Claude **« Rollback N »** (ex. « Rol
 | v36 | 26 oct. | Croix ✕ dans « Rechercher » pour effacer la recherche |
 | v37 | 26 oct. | Onglet 🎓 Prof : discussion avec Claude, leçons à ajouter dans 📚 Mes cours (synchronisés) |
 | v38 | 4 nov. | Bouton ❓ sous la traduction : poser une question à Claude sur cette traduction (réponse dans 🎓 Prof, leçon possible) |
+| v39 | 5 nov. | « 📒 Déjà dans ton carnet » : prévient si le mot y est déjà, dans les deux sens (jaune ⇄ yellow) |
 
 (Les numéros manquants, comme v23 et v27, étaient des étapes intermédiaires jamais publiées.)

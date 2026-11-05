@@ -277,6 +277,13 @@ button.chip{cursor:pointer}
 /* Prof : discussion et cours */
 .chatLog{display:flex;flex-direction:column;gap:12px}
 .msg{max-width:88%;padding:10px 14px;border-radius:18px;overflow-wrap:anywhere;font-size:16px;line-height:1.5}
+.known{background:var(--hl);color:var(--hl-ink);border-radius:14px;padding:10px 14px;display:flex;flex-direction:column;gap:6px;animation:resIn .25s ease}
+.known strong{font-size:15px}
+.known button{font:inherit;font-size:15px;text-align:left;display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.55);color:inherit;border:0;border-radius:10px;padding:8px 10px;cursor:pointer;overflow-wrap:anywhere}
+:root[data-theme="dark"] .known button{background:rgba(0,0,0,.15)}
+.known .kt{flex:1;min-width:0}
+.known .kd{font-size:13px;opacity:.8;flex:none}
+@media (prefers-reduced-motion:reduce){.known{animation:none}}
 .askBtn{align-self:flex-start;font:inherit;font-size:14px;font-weight:600;color:var(--blue);background:var(--card);border:1px solid var(--line);border-radius:999px;padding:7px 14px;cursor:pointer}
 .askBox{display:flex;gap:8px;align-items:flex-end}
 .askBox textarea{flex:1;min-height:44px;max-height:30vh;resize:none;border-radius:22px;padding:10px 16px;background:var(--card);line-height:1.4}
@@ -371,6 +378,7 @@ button.chip{cursor:pointer}
           <button class="btn" type="button" id="askSend" aria-label="Envoyer la question">➤</button>
         </div>
       </div>
+      <div class="known" id="knownBox" hidden aria-live="polite"></div>
       <button type="button" class="switchRow" id="ownSwitch" role="switch" aria-checked="false">
         <span class="track" aria-hidden="true"></span><span id="ownLabel">✏️ Ma propre traduction</span>
       </button>
@@ -1215,9 +1223,42 @@ function pendingValid(){ return !!pending && pending.origin===origin && pending.
 function updateSaveLabel(){
   const btn=$("#saveBtn"); if(btn.disabled) return;
   if(editingId) btn.textContent="Enregistrer";
-  else if(autoMode()) btn.textContent = pendingValid() ? "Ajouter au carnet" : "Traduire";
-  else btn.textContent="Ajouter au carnet";
+  else if(autoMode()) btn.textContent = pendingValid() ? (knownNow.length ? "Ajouter quand même" : "Ajouter au carnet") : "Traduire";
+  else btn.textContent = knownNow.length ? "Ajouter quand même" : "Ajouter au carnet";
 }
+// ---------- Déjà dans le carnet ? (dans les deux sens : on compare au français ET à l'anglais) ----------
+const normTerm = t => String(t||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+  .replace(/[’`]/g,"'").replace(/[.,;:!?¿¡"«»()…]/g," ").replace(/\s+/g," ").trim()
+  .replace(/^(to|a|an|the|le|la|les|un|une|des|du|se) +/,"").replace(/^(l|s|d)'/,"").trim();
+let knownNow=[];
+function findKnown(terms){
+  const keys=new Set(terms.map(normTerm).filter(Boolean)); if(!keys.size) return [];
+  return entries.filter(e=>e.id!==editingId && (keys.has(normTerm(e.en)) || keys.has(normTerm(e.fr))))
+    .sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)).slice(0,3);
+}
+function updateKnown(){
+  const box=$("#knownBox"); if(!box) return;
+  const src=srcInput().value.trim();
+  const terms = editingId || !src ? [] : [src, ...(pendingValid() ? [pending.text, ...(pending.alts||[])] : []),
+    ...(!autoMode() ? [(origin==="fr"?$("#enInput"):$("#frInput")).value] : [])];
+  knownNow = findKnown(terms);
+  box.hidden = !knownNow.length;
+  box.innerHTML = knownNow.length ? `<strong>📒 Déjà dans ton carnet</strong>` + knownNow.map(e=>{
+    const a = e.origin==="fr" ? [e.fr,e.en] : [e.en,e.fr], f=folderById(e.folder);
+    const d = new Date(e.createdAt||Date.now()).toLocaleDateString("fr-FR",{day:"numeric",month:"short"});
+    return `<button type="button" data-known="${esc(e.id)}"><span class="kt">${esc(a[0])} → <b>${esc(a[1])}</b></span><span class="kd">${f?esc(f.emoji||"📁")+" ":""}${e.status==="learned"?"✅ ":""}${d}</span></button>`;
+  }).join("") : "";
+  const btn=$("#saveBtn"); if(btn && !btn.disabled) updateSaveLabel();
+}
+$("#knownBox").addEventListener("click",ev=>{
+  const b=ev.target.closest("[data-known]"); if(!b) return;
+  const e=entries.find(x=>x.id===b.dataset.known); if(!e) return;
+  curFolder="all"; filter="all";
+  document.querySelectorAll("[data-filter]").forEach(x=>x.setAttribute("aria-pressed",x.dataset.filter==="all"));
+  $("#search").value = e.origin==="fr" ? e.fr : e.en; $("#searchClear").hidden=false;
+  showTab("review"); setRevMode("list"); render();
+});
+["#enInput","#frInput"].forEach(s=>$(s).addEventListener("input",()=>updateKnown()));
 let askFor=null;
 function showResult(){
   const ok = autoMode() && pendingValid();
@@ -1242,7 +1283,7 @@ function showResult(){
     $("#resultEngine").textContent = pending.fallback ? "Traduit avec DeepL ("+(pending.reason||"Claude indisponible")+")" : "";
     if(askFor!==pending.text+"|"+pending.src){ askFor=null; $("#askBox").hidden=true; $("#askBtn").hidden=false; }
   }
-  updateSaveLabel();
+  updateKnown();
   if(typeof updateClearBtns==="function") updateClearBtns();
 }
 function clearPending(){ pending=null; showResult(); }
@@ -1298,7 +1339,7 @@ $("#addForm").addEventListener("submit",async ev=>{
     }
     // Step 2: save what is on screen.
     if(fromFr){ fr=pending.src; en=pending.text; } else { en=pending.src; fr=pending.text; }
-    const dup=entries.some(x=>x.en.toLowerCase()===en.toLowerCase());
+    const dup=knownNow.length>0 || entries.some(x=>x.en.toLowerCase()===en.toLowerCase());
     entries.push({id:uid(),en,fr,note,origin,status:"new",createdAt:Date.now(), exEn:pending.exEn||"", exFr:pending.exFr||"", tip:pending.tip||"", folder:chosenFolder()});
     if(save()) toast(dup?"Ajouté (tu l'avais déjà noté)":"Ajouté au carnet");
     resetForm(); render();
@@ -1319,7 +1360,7 @@ $("#addForm").addEventListener("submit",async ev=>{
   if(editingId && !target){ toast("Ce mot a été supprimé sur un autre appareil."); resetForm(); showTab("review"); return; }
   if(target){ Object.assign(target,{en,fr,note,origin,folder:chosenFolder()}); if(save()) toast("Modifié"); }
   else{
-    const dup=entries.some(x=>x.en.toLowerCase()===en.toLowerCase());
+    const dup=knownNow.length>0 || entries.some(x=>x.en.toLowerCase()===en.toLowerCase());
     // Own translation: keep the example only if it belongs to this same source text.
     const src = origin==="fr" ? fr : en;
     const ex = (lastExtras && lastExtras.origin===origin && lastExtras.src===src) ? lastExtras : {};
